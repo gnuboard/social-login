@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import NaverProvider from "next-auth/providers/naver";
-import pool from '@/utils/db';
+import pool from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 const handler = NextAuth({

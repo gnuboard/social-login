@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pool from '@/utils/db';
+import pool from '@/lib/db';
 import { getServerSession } from 'next-auth';
 
 // 게시판 수정

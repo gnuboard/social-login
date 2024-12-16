@@ -2,35 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
-
-interface Board {
-  id: number;
-  slug: string;
-  title: string;
-  description: string;
-  category: string;
-  list_level: number;
-  read_level: number;
-  write_level: number;
-  comment_level: number;
-  posts_count: number;
-  created_at: string;
-  deleted_at: string | null;
-}
-
-interface BoardFormData {
-  slug: string;
-  title: string;
-  description: string;
-  category: string;
-}
+import Link from 'next/link';
+import { Board, BoardFormData } from '@/types';
 
 export default function BoardsPage() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<BoardFormData>({
-    slug: '',
+    code: '',
     title: '',
     description: '',
     category: ''
@@ -73,7 +53,7 @@ export default function BoardsPage() {
 
       // 성공 시 모달 닫고 목록 새로고침
       setIsModalOpen(false);
-      setFormData({ slug: '', title: '', description: '', category: '' });
+      setFormData({ code: '', title: '', description: '', category: '' });
       setEditBoardId(null);
       fetchBoards();
     } catch (error) {
@@ -92,7 +72,7 @@ export default function BoardsPage() {
 
   const handleEdit = (board: Board) => {
     setFormData({
-      slug: board.slug,
+      code: board.code,
       title: board.title,
       description: board.description,
       category: board.category
@@ -180,7 +160,7 @@ export default function BoardsPage() {
                   제목
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  슬러그
+                  코드
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   카테고리
@@ -211,7 +191,12 @@ export default function BoardsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {board.slug}
+                    <Link 
+                      href={`/board/${board.code}`} 
+                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      {board.code}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -281,15 +266,15 @@ export default function BoardsPage() {
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">슬러그</label>
+                    <label className="block text-sm font-medium text-gray-700">코드</label>
                     <input
                       type="text"
-                      name="slug"
-                      value={formData.slug}
+                      name="code"
+                      value={formData.code}
                       onChange={handleChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       required
-                      disabled={!!editBoardId} // 수정 시 슬러그는 변경 불가
+                      disabled={!!editBoardId} // 수정 시 코드는 변경 불가
                     />
                   </div>
                   <div>
@@ -330,7 +315,7 @@ export default function BoardsPage() {
                     onClick={() => {
                       setIsModalOpen(false);
                       setEditBoardId(null);
-                      setFormData({ slug: '', title: '', description: '', category: '' });
+                      setFormData({ code: '', title: '', description: '', category: '' });
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                   >

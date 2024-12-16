@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pool from '@/utils/db';
+import pool from '@/lib/db';
 import { getServerSession } from 'next-auth';
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
