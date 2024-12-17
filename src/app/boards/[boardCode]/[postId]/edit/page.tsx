@@ -2,17 +2,18 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Post } from '@/types';
 
 interface Props {
-  params: {
+  params: Promise<{
     boardCode: string;
     postId: string;
-  };
+  }>;
 }
 
 async function getPostDetail(boardCode: string, postId: string) {
-  const response = await fetch(`/api/board/${boardCode}/posts/${postId}`, {
+  const response = await fetch(`/api/boards/${boardCode}/${postId}`, {
     cache: 'no-store'
   });
 
@@ -26,10 +27,11 @@ async function getPostDetail(boardCode: string, postId: string) {
 
 export default function EditPostPage({ params }: Props) {
   const router = useRouter();
-  const resolvedParams = use(params);
-  const { boardCode, postId } = resolvedParams;
+  const { boardCode, postId } = use(params);
+  const { data: session, status } = useSession();
   
   const [isLoading, setIsLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -38,9 +40,20 @@ export default function EditPostPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (status === 'loading') return;
+    
     const fetchPost = async () => {
       try {
+        if (status === 'unauthenticated') {
+          throw new Error('로그인이 필요합니다.');
+        }
+
         const post = await getPostDetail(boardCode, postId);
+        
+        if (session?.user?.email !== post.user_email) {
+          throw new Error('게시글을 수정할 권한이 없습니다.');
+        }
+
         setFormData({
           title: post.title || '',
           content: post.content || '',
@@ -54,27 +67,33 @@ export default function EditPostPage({ params }: Props) {
     };
 
     fetchPost();
-  }, [boardCode, postId]);
+  }, [status, session, boardCode, postId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitLoading(true);
     
     try {
-      const response = await fetch(`/api/board/${boardCode}/posts/${postId}`, {
+      const response = await fetch(`/api/boards/${boardCode}/${postId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          content: formData.content
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('게시글 수정에 실패했습니다.');
+        const errorData = await response.json();
+        throw new Error(errorData.error || '게시글 수정에 실패했습니다.');
       }
 
-      router.push(`/board/${boardCode}/${postId}`);
+      router.push(`/boards/${boardCode}/${postId}`);
     } catch (err: any) {
       setError(err.message);
+      setSubmitLoading(false);
     }
   };
 
@@ -127,8 +146,11 @@ export default function EditPostPage({ params }: Props) {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight 
+                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                hover:border-gray-400 transition-colors"
               required
+              autoFocus
             />
           </div>
 
@@ -141,25 +163,36 @@ export default function EditPostPage({ params }: Props) {
               name="content"
               value={formData.content}
               onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-48"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight 
+                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                hover:border-gray-400 transition-colors min-h-[12rem] resize-y whitespace-pre-wrap"
               required
             />
           </div>
 
-          <div className="flex items-center gap-4">
-            <button
-              type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            >
-              수정하기
-            </button>
-            
+          <div className="flex items-center gap-4 justify-end">
             <button
               type="button"
-              onClick={() => router.push(`/board/${boardCode}/${postId}`)}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              onClick={() => {
+                if (window.confirm('수정을 취소하시겠습니까?')) {
+                  router.push(`/boards/${boardCode}/${postId}`);
+                }
+              }}
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded
+                focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2
+                transition-colors disabled:opacity-50"
+              disabled={submitLoading}
             >
               취소
+            </button>
+            <button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded
+                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                transition-colors disabled:opacity-50"
+              disabled={submitLoading}
+            >
+              {submitLoading ? '수정 중...' : '수정하기'}
             </button>
           </div>
         </form>

@@ -16,7 +16,7 @@ export async function GET(
       [boardCode]
     );
     
-    console.log('게시판 조회 결과:', boardResult);
+    // console.log('게시판 조회 결과:', boardResult);
     
     if (!Array.isArray(boardResult) || boardResult.length === 0) {
       return NextResponse.json(
@@ -26,6 +26,7 @@ export async function GET(
     }
     
     const board = boardResult[0];
+    const boardId = board.id;
     
     const { searchParams } = new URL(request.url);
     const page = Number(searchParams.get('page')) || 1;
@@ -40,15 +41,14 @@ export async function GET(
         p.created_at,
         p.view_count
       FROM posts p
-      INNER JOIN boards b ON p.board_id = b.id
-      WHERE b.code = ?
+      WHERE p.board_id = ?
       ORDER BY p.created_at DESC
       LIMIT ? OFFSET ?
     `;
 
     const [posts] = await pool.query<Post[]>(
       query,
-      [boardCode, limit, offset]
+      [boardId, limit, offset]
     );
 
     return NextResponse.json(posts);

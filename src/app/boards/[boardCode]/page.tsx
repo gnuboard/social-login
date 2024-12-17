@@ -8,12 +8,23 @@ interface Props {
 }
 
 async function getPosts(boardCode: string) {
-  const response = await fetch(`http://localhost:3000/api/board/${boardCode}`, {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const apiUrl = `${baseUrl}/api/boards/${boardCode}`;
+  
+  console.log('Fetching posts for board:', boardCode);
+  console.log('Full Request URL:', apiUrl);
+  
+  const response = await fetch(apiUrl, {
     cache: 'no-store'
   });
   
   if (!response.ok) {
     const errorData = await response.json();
+    console.error('API 응답 에러:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorData
+    });
     throw new Error(errorData.error || '게시글을 불러오는데 실패했습니다.');
   }
   
@@ -33,7 +44,7 @@ export default async function BoardPage({ params }: Props) {
             {resolvedParams.boardCode} 게시판
           </h1>
           <Link 
-            href={`/board/${resolvedParams.boardCode}/write`}
+            href={`/boards/${resolvedParams.boardCode}/write`}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
           >
             글쓰기
@@ -47,7 +58,7 @@ export default async function BoardPage({ params }: Props) {
                 key={post.id} 
                 className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200"
               >
-                <Link href={`/board/${resolvedParams.boardCode}/${post.id}`}>
+                <Link href={`/boards/${resolvedParams.boardCode}/${post.id}`}>
                   <h2 className="text-xl font-semibold text-gray-800 mb-2 hover:text-blue-600 transition-colors duration-200 cursor-pointer">
                     {post.title}
                   </h2>
