@@ -16,7 +16,7 @@ export default function WritePostPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/boards/${boardCode}/posts`, {
+      const response = await fetch(`/api/boards/${boardCode}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

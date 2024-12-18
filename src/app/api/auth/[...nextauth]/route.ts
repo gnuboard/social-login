@@ -4,7 +4,7 @@ import NaverProvider from "next-auth/providers/naver";
 import pool from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
-const handler = NextAuth({
+export const authOptions = {
   debug: true,
   providers: [
     GoogleProvider({
@@ -45,7 +45,7 @@ const handler = NextAuth({
             );
 
             if (Array.isArray(users) && users.length > 0) {
-              // 기존 사용자의 updated_at 시간 업데이트
+              // 기 사용자의 updated_at 시간 업데이트
               await connection.execute(
                 'UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE email = ?',
                 [user.email]
@@ -70,7 +70,28 @@ const handler = NextAuth({
       }
       return true;
     },
-    async session({ session, token }) {
+    async session({ session, user }) {
+      if (session?.user?.email) {
+        try {
+          const connection = await pool.getConnection();
+          try {
+            const [users] = await connection.execute(
+              'SELECT * FROM users WHERE email = ?',
+              [session.user.email]
+            );
+            
+            if (Array.isArray(users) && users.length > 0) {
+              const dbUser = users[0];
+              session.user.name = dbUser.name;
+              session.user.id = dbUser.id;
+            }
+          } finally {
+            connection.release();
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
       return session;
     },
     async redirect({ url, baseUrl }) {
@@ -81,6 +102,7 @@ const handler = NextAuth({
     signIn: '/login',
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
 
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST }; 

@@ -55,7 +55,7 @@ const Header = () => {
             ) : session ? (
               <>
                 <span className="text-sm text-gray-600">
-                  {session.user?.email}
+                  {session.user?.name || '사용자'} ({session.user?.email})
                 </span>
                 <button 
                   onClick={handleLogout}

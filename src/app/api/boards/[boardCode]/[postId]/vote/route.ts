@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import pool from '@/lib/db';
-
-interface RouteParams {
-  params: {
-    boardCode: string;
-    postId: string;
-  }
-}
+import { RouteParams } from '@/types';
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const connection = await pool.getConnection();
@@ -53,7 +47,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 이전 투표 확인
+    // ��전 투표 확인
     const [existingVote] = await connection.execute(
       'SELECT id, vote_type FROM votes WHERE post_id = ? AND user_id = ?',
       [postId, userId]

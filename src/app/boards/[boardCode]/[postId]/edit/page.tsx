@@ -50,7 +50,10 @@ export default function EditPostPage({ params }: Props) {
 
         const post = await getPostDetail(boardCode, postId);
         
-        if (session?.user?.email !== post.user_email) {
+        console.log('Session user ID:', session?.user?.id);
+        console.log('Post user ID:', post.user_id);
+        
+        if (session?.user?.id !== post.user_id) {
           throw new Error('게시글을 수정할 권한이 없습니다.');
         }
 

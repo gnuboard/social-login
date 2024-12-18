@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/auth";
+import { RowDataPacket } from 'mysql2';
+
+interface UserResult extends RowDataPacket {
+  id: number;
+  email: string;
+  name: string;
+}
+
+interface PostResult extends RowDataPacket {
+  id: number;
+  user_email: string;
+  vote_user_id: number;
+  raw_vote_type: number;
+  user_vote: boolean | null;
+  // 다른 필요한 필드들도 추가
+}
 
 export async function GET(
   request: NextRequest,
@@ -11,22 +27,17 @@ export async function GET(
   
   try {
     const session = await getServerSession(authOptions);
-    console.log('Current session:', session);
 
-    const [userResult] = await connection.execute(
+    const [userResult] = await connection.execute<UserResult[]>(
       'SELECT id FROM users WHERE email = ?',
       [session?.user?.email]
     );
     const userId = userResult?.[0]?.id;
-    console.log('User lookup:', { 
-      email: session?.user?.email, 
-      foundUserId: userId 
-    });
 
-    const { boardCode, postId } = params;
-    console.log('Request params:', { boardCode, postId });
+    const resolvedParams = await Promise.resolve(params);
+    const { boardCode, postId } = resolvedParams;
 
-    const [posts] = await connection.execute(`
+    const [posts] = await connection.execute<PostResult[]>(`
       SELECT 
         p.*,
         v.user_id as vote_user_id,
@@ -35,27 +46,25 @@ export async function GET(
           WHEN v.vote_type = 1 THEN true
           WHEN v.vote_type = 0 THEN false
           ELSE NULL 
-        END as user_vote
+        END as user_vote,
+        (SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 1) as like_count,
+        (SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 0) as dislike_count
       FROM posts p
       LEFT JOIN votes v ON p.id = v.post_id AND v.user_id = ?
       WHERE p.id = ?
     `, [userId, postId]);
-
-    console.log('Query result:', {
-      userId,
-      postData: posts[0],
-      voteInfo: {
-        vote_user_id: posts[0]?.vote_user_id,
-        raw_vote_type: posts[0]?.raw_vote_type,
-        user_vote: posts[0]?.user_vote
-      }
-    });
 
     if (!posts || posts.length === 0) {
       return NextResponse.json(
         { error: '게시글을 찾을 수 없습니다.' }, 
         { status: 404 }
       );
+    }
+
+    if (posts[0]) {
+      const post = posts[0];
+      post.user_vote = post.raw_vote_type === null ? null :
+                       post.raw_vote_type === 1 ? true : false;
     }
 
     return NextResponse.json(posts[0]);
@@ -87,11 +96,25 @@ export async function PUT(
       });
     }
 
-    // 기존 게시글 조회
-    const [posts] = await connection.execute(`
-      SELECT p.*, u.email as user_email
+    // 현재 로그인한 사용자의 ID 조회
+    const [userResult] = await connection.execute<UserResult[]>(
+      'SELECT id FROM users WHERE email = ?',
+      [session.user.email]
+    );
+
+    if (!userResult || userResult.length === 0) {
+      return new Response(JSON.stringify({ error: '사용자를 찾을 수 없습니다.' }), {
+        status: 404,
+      });
+    }
+
+    const currentUserId = userResult[0].id;
+    console.log('현재 사용자 ID:', currentUserId);
+
+    // 게시글 조회 시 user_id 비교를 위해 수정
+    const [posts] = await connection.execute<PostResult[]>(`
+      SELECT p.*
       FROM posts p
-      JOIN users u ON p.user_id = u.id
       WHERE p.id = ? AND p.board_id = (
         SELECT id FROM boards WHERE code = ?
       )
@@ -104,10 +127,13 @@ export async function PUT(
     }
 
     const post = posts[0];
+    console.log('게시글 정보:', post);
+    console.log('게시글 작성자 ID:', post.user_id);
 
-    // 작성자 권한 확인
-    if (post.user_email !== session.user.email) {
-      return new Response(JSON.stringify({ error: '���시글을 수정할 권한이 없습니다.' }), {
+    // user_id로 권한 확인
+    if (post.user_id !== currentUserId) {
+      console.log('권한 검사 실패 - 게시글 작성자 ID:', post.user_id, '현재 사용자 ID:', currentUserId);
+      return new Response(JSON.stringify({ error: '게시글을 수정할 권한이 없습니다.' }), {
         status: 403,
       });
     }
@@ -200,83 +226,3 @@ export async function DELETE(
     connection.release();
   }
 }
-
-export async function POST(
-  request: Request,
-  { params }: { params: { boardCode: string } }
-) {
-  const connection = await pool.getConnection();
-  
-  try {
-    const { boardCode } = await params;
-    const session = await getServerSession();
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    
-    if (!body.title || !body.content) {
-      return NextResponse.json(
-        { error: '제목과 내용은 필수 입력사항입니다.' },
-        { status: 400 }
-      );
-    }
-
-    const { title, content } = body;
-
-    // 게시판 존재 여부 확인
-    const [boards] = await connection.execute(`
-      SELECT id FROM boards WHERE code = ?
-    `, [boardCode]);
-
-    if (!Array.isArray(boards) || boards.length === 0) {
-      return NextResponse.json(
-        { error: '게시판을 찾을 수 없습니다.' },
-        { status: 404 }
-      );
-    }
-
-    const boardId = boards[0].id;
-
-    // 사용자 정보 조회 부분 수정
-    const [users] = await connection.execute(`
-      SELECT id, name FROM users WHERE email = ?
-    `, [session.user.email]);
-
-    if (!Array.isArray(users) || users.length === 0) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      );
-    }
-
-    const userId = users[0].id;
-    const author = users[0].name;
-
-    // 게시글 작성 쿼리 수정
-    const [result] = await connection.execute(`
-      INSERT INTO posts (title, content, user_id, board_id, author, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `, [title, content, userId, boardId, author]);
-
-    return NextResponse.json({
-      message: '게시글이 성공적으로 작성되었습니다.',
-      // @ts-ignore
-      postId: result.insertId
-    }, { status: 201 });
-
-  } catch (error) {
-    console.error('게시글 작성 에러:', error);
-    return NextResponse.json(
-      { error: '게시글 작성 중 오류가 발생했습니다.' },
-      { status: 500 }
-    );
-  } finally {
-    connection.release();
-  }
-} 
