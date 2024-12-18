@@ -28,6 +28,7 @@ export async function GET(
       `SELECT 
         c.*,
         u.name as author_name,
+        u.id as user_id,
         mu.name as mentioned_user_name
        FROM comments c
        LEFT JOIN users u ON c.user_id = u.id
@@ -99,6 +100,7 @@ export async function POST(
   
   try {
     const session = await getServerSession(authOptions);
+    
     if (!session) {
       return NextResponse.json(
         { error: '로그인이 필요합니다.' },

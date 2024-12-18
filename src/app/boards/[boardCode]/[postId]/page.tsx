@@ -93,20 +93,21 @@ const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
 
   const handleSubmitReply = async (content: string) => {
     try {
-      const mentionedContent = `@${comment.author} ${content}`;
       const response = await fetch(`/api/boards/${boardCode}/${postId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: mentionedContent,
-          parentId: comment.id
+          content: content,
+          parentId: comment.id,
+          mentionedUserId: replyToId ? replies.find(r => r.id === replyToId)?.user_id : comment.user_id
         }),
       });
 
       if (!response.ok) {
-        throw new Error('답글 작성에 실패했습니다.');
+        const errorData = await response.json();
+        throw new Error(errorData.error || '답글 작성에 실패했습니다.');
       }
 
       const newReply = await response.json();
@@ -115,7 +116,7 @@ const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
       onReply(comment.id);
     } catch (error) {
       console.error('답글 작성 오류:', error);
-      alert('답글 작성에 실패했습니다.');
+      alert(error.message || '답글 작성에 실패했습니다.');
     }
   };
 
