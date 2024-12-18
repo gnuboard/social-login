@@ -120,6 +120,17 @@ const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
     }
   };
 
+  const renderCommentContent = (comment: Comment) => {
+    if (comment.mentioned_user_name) {
+      return (
+        <p className="mt-2 whitespace-pre-wrap">
+          <span className="text-blue-600">@{comment.mentioned_user_name}</span> {comment.content}
+        </p>
+      );
+    }
+    return <p className="mt-2 whitespace-pre-wrap">{comment.content}</p>;
+  };
+
   if (comment.parentId) {
     return (
       <div className="ml-8 mb-2">
@@ -130,7 +141,7 @@ const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
               {new Date(comment.created_at).toLocaleDateString()}
             </span>
           </div>
-          <p className="mt-2 whitespace-pre-wrap">{comment.content}</p>
+          {renderCommentContent(comment)}
           <button 
             onClick={() => setIsReplying(!isReplying)}
             className="text-blue-500 text-sm mt-2"
@@ -159,7 +170,7 @@ const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
             {new Date(comment.created_at).toLocaleDateString()}
           </span>
         </div>
-        <p className="mt-2 whitespace-pre-wrap">{comment.content}</p>
+        {renderCommentContent(comment)}
         <button 
           onClick={() => setReplyToId(replyToId === comment.id ? null : comment.id)}
           className="text-blue-500 text-sm mt-2"
@@ -188,7 +199,7 @@ const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
                   {new Date(reply.created_at).toLocaleDateString()}
                 </span>
               </div>
-              <p className="mt-2 whitespace-pre-wrap">{reply.content}</p>
+              {renderCommentContent(reply)}
               <button 
                 onClick={() => setReplyToId(replyToId === reply.id ? null : reply.id)}
                 className="text-blue-500 text-sm mt-2"
