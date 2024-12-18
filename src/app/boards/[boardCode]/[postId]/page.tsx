@@ -388,52 +388,6 @@ export default function PostDetailPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-end items-center gap-2 mb-6">
-          <Link 
-            href={`/boards/${boardCode}`}
-            className="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-          >
-            목록으로
-          </Link>
-          
-          {session?.user && post.author && (
-            session.user.email === post.author || 
-            session.user.name === post.author
-          ) && (
-            <>
-              <Link 
-                href={`/boards/${boardCode}/${postId}/edit`}
-                className="px-4 py-2 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
-              >
-                수정하기
-              </Link>
-              
-              <button
-                onClick={async () => {
-                  if (confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
-                    try {
-                      const response = await fetch(`/api/boards/${boardCode}/${postId}`, {
-                        method: 'DELETE',
-                      });
-                      
-                      if (!response.ok) {
-                        throw new Error('게시글 삭제에 실패했습니다.');
-                      }
-                      
-                      window.location.href = `/boards/${boardCode}`;
-                    } catch (error) {
-                      alert('게시글 삭제 중 오류가 발생했습니다.');
-                    }
-                  }
-                }}
-                className="px-4 py-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-              >
-                삭제하기
-              </button>
-            </>
-          )}
-        </div>
-
         <h1 className="text-2xl font-bold mb-4">{post.title}</h1>
         <div className="flex items-center text-gray-600 mb-4">
           <span className="mr-4">작성자: {post.author}</span>
@@ -502,6 +456,61 @@ export default function PostDetailPage() {
               <p className="text-center text-gray-500">아직 작성된 댓글이 없습니다.</p>
             )}
           </div>
+        </div>
+
+        <div className="flex justify-between items-center mt-8 pt-6 border-t">
+          <div className="flex items-center gap-2">
+            <Link 
+              href={`/boards/${boardCode}/write`}
+              className="px-4 py-2 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+            >
+              글쓰기
+            </Link>
+            
+            {session?.user && post.author && (
+              session.user.email === post.author || 
+              session.user.name === post.author
+            ) && (
+              <>
+                <Link 
+                  href={`/boards/${boardCode}/${postId}/edit`}
+                  className="px-4 py-2 rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                >
+                  수정
+                </Link>
+                
+                <button
+                  onClick={async () => {
+                    if (confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+                      try {
+                        const response = await fetch(`/api/boards/${boardCode}/${postId}`, {
+                          method: 'DELETE',
+                        });
+                        
+                        if (!response.ok) {
+                          throw new Error('게시글 삭제에 실패했습니다.');
+                        }
+                        
+                        window.location.href = `/boards/${boardCode}`;
+                      } catch (error) {
+                        alert('게시글 삭제 중 오류가 발생했습니다.');
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                >
+                  삭제
+                </button>
+              </>
+            )}
+          </div>
+
+          <Link 
+            href={`/boards/${boardCode}`}
+            className="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+          >
+            목록
+          </Link>
         </div>
       </div>
     </div>

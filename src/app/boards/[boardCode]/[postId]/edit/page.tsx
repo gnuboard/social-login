@@ -190,8 +190,8 @@ export default function EditPostPage({ params }: Props) {
             </button>
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded
+                focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
                 transition-colors disabled:opacity-50"
               disabled={submitLoading}
             >
