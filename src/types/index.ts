@@ -56,6 +56,5 @@ export interface Comment {
   author: string;
   created_at: string;
   parent_id: number | null;
-  replies?: Comment[];
-  reply_count?: number;
+  replies: Comment[];
 }

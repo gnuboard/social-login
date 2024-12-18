@@ -37,6 +37,128 @@ async function handleVote(boardCode: string, postId: string, voteType: boolean) 
   return response.json();
 }
 
+interface CommentProps {
+  comment: Comment;
+  onReply: (parentId: number) => void;
+  boardCode: string;
+  postId: string;
+}
+
+const CommentForm = ({ parentId, onSubmit, onCancel }: {
+  parentId?: number;
+  onSubmit: (content: string) => void;
+  onCancel?: () => void;
+}) => {
+  const [content, setContent] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(content);
+    setContent('');
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-2">
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="w-full p-2 border rounded"
+        placeholder={parentId ? "답글을 입력하세요..." : "댓글을 입력하세요..."}
+      />
+      <div className="mt-2 flex gap-2">
+        <button 
+          type="submit" 
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          {parentId ? "답글 작성" : "댓글 작성"}
+        </button>
+        {onCancel && (
+          <button 
+            type="button" 
+            onClick={onCancel}
+            className="px-4 py-2 bg-gray-300 rounded"
+          >
+            취소
+          </button>
+        )}
+      </div>
+    </form>
+  );
+};
+
+const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
+  const [isReplying, setIsReplying] = useState(false);
+  const [replies, setReplies] = useState(comment.replies || []);
+
+  const handleSubmitReply = async (content: string) => {
+    try {
+      const response = await fetch(`/api/boards/${boardCode}/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content,
+          parentId: comment.id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('답글 작성에 실패했습니다.');
+      }
+
+      const newReply = await response.json();
+      setReplies([...replies, newReply]);
+      onReply(comment.id);
+      setIsReplying(false);
+    } catch (error) {
+      console.error('답글 작성 오류:', error);
+      alert('답글 작성에 실패했습니다.');
+    }
+  };
+
+  return (
+    <div className="mb-4">
+      <div className="bg-gray-50 p-4 rounded">
+        <div className="flex justify-between">
+          <span className="font-bold">{comment.author}</span>
+          <span className="text-gray-500">
+            {new Date(comment.created_at).toLocaleDateString()}
+          </span>
+        </div>
+        <p className="mt-2">{comment.content}</p>
+        <button 
+          onClick={() => setIsReplying(!isReplying)}
+          className="text-blue-500 text-sm mt-2"
+        >
+          답글 달기
+        </button>
+      </div>
+
+      {isReplying && (
+        <div className="ml-8">
+          <CommentForm 
+            parentId={comment.id}
+            onSubmit={handleSubmitReply}
+            onCancel={() => setIsReplying(false)}
+          />
+        </div>
+      )}
+      
+      <div className="ml-8 mt-2">
+        {replies.map((reply) => (
+          <Comment 
+            key={reply.id} 
+            comment={reply} 
+            onReply={onReply}
+            boardCode={boardCode}
+            postId={postId}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -52,6 +174,11 @@ export default function PostDetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isCommentLoading, setIsCommentLoading] = useState(false);
+  const [replyToComment, setReplyToComment] = useState<{
+    id: number;
+    author: string;
+    userId: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!boardCode || !postId) {
@@ -118,32 +245,18 @@ export default function PostDetailPage() {
           statusText: response.statusText,
           error: errorData
         });
-        
-        if (response.status === 404) {
-          setComments([]);
-          return;
-        }
-        
         throw new Error(errorData.error || '댓글을 불러오는데 실패했습니다.');
       }
 
       const data = await response.json();
-
-      if (Array.isArray(data)) {
-        setComments(data);
-      } else if (data === null || data === undefined) {
-        setComments([]);
-      } else {
-        console.error('예상치 못한 응답 형식:', data);
-        setComments([]);
-      }
+      setComments(data);
     } catch (error) {
       console.error('댓글 로딩 중 오류:', error);
       setComments([]);
     }
   }, [boardCode, postId]);
 
-  const handleCommentSubmit = async (content: string) => {
+  const handleCommentSubmit = async (content: string, parentId?: number, mentionedUserId?: number) => {
     if (!session) {
       alert('로그인이 필요한 기능입니다.');
       return;
@@ -161,17 +274,19 @@ export default function PostDetailPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, parentId, mentionedUserId }),
       });
 
       if (!response.ok) {
-        throw new Error('댓글 작성에 실패했습니다.');
+        const errorData = await response.json();
+        throw new Error(errorData.error || '댓글 작성에 실패했습니다.');
       }
 
       await loadComments();
       setNewComment('');
+      setReplyToComment(null);
     } catch (error) {
-      alert('댓글 작성 중 오류가 발생했습니다.');
+      alert(error.message || '댓글 작성 중 오류가 발생했습니다.');
     } finally {
       setIsCommentLoading(false);
     }
@@ -327,15 +442,7 @@ export default function PostDetailPage() {
 
           <div className="space-y-4">
             {comments.map((comment) => (
-              <div key={comment.id} className="border-b pb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">{comment.author}</span>
-                  <span className="text-sm text-gray-500">
-                    {new Date(comment.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
-              </div>
+              <Comment key={comment.id} comment={comment} onReply={setReplyToComment} boardCode={boardCode} postId={postId} />
             ))}
             {comments.length === 0 && (
               <p className="text-center text-gray-500">아직 작성된 댓글이 없습니다.</p>
