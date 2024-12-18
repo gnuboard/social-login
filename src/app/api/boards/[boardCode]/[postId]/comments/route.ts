@@ -23,7 +23,7 @@ export async function GET(
     const resolvedParams = await Promise.resolve(params);
     const postId = resolvedParams.postId;
 
-    // 원글과 대댓글을 함께 조회
+    // 댓글 조회 쿼리는 그대로 유지
     const [rows] = await connection.query(
       `SELECT 
         c.*,
@@ -39,25 +39,45 @@ export async function GET(
       [postId]
     );
     
-    // 댓글 트리 구조로 변환
+    // 댓글 트리 구조로 변환하는 부분 수정
     const commentMap = new Map();
-    const mainComments = [];
+    const mainComments: any[] = [];
 
     (rows as any[]).forEach(comment => {
-      comment.replies = [];
-      commentMap.set(comment.id, comment);
+      // 기본 댓글 객체 구조 생성
+      const commentObj = {
+        ...comment,
+        replies: [],
+        author: comment.author_name || comment.author // author_name이 없으면 author 사용
+      };
+      
+      commentMap.set(comment.id, commentObj);
       
       if (comment.parent_id === null) {
-        mainComments.push(comment);
+        mainComments.push(commentObj);
       } else {
         const parentComment = commentMap.get(comment.parent_id);
         if (parentComment) {
-          parentComment.replies.push(comment);
+          if (!parentComment.replies) {
+            parentComment.replies = [];
+          }
+          parentComment.replies.push(commentObj);
         }
       }
     });
+
+    // 디버깅을 위한 로그 추가
+    console.log('Total comments:', rows.length);
+    console.log('Main comments:', mainComments.length);
+    console.log('Comments with replies:', mainComments.map(c => ({
+      id: c.id,
+      repliesCount: c.replies.length
+    })));
     
-    return NextResponse.json(mainComments);
+    return NextResponse.json({
+      comments: mainComments,
+      totalCount: rows.length
+    });
   } catch (error) {
     console.error('댓글 조회 에러:', error);
     return NextResponse.json(

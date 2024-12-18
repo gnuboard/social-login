@@ -62,7 +62,7 @@ const CommentForm = ({ parentId, onSubmit, onCancel }: {
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className="w-full p-2 border rounded"
+        className="w-full p-2 border rounded whitespace-pre-wrap"
         placeholder={parentId ? "답글을 입력하세요..." : "댓글을 입력하세요..."}
       />
       <div className="mt-2 flex gap-2">
@@ -89,16 +89,18 @@ const CommentForm = ({ parentId, onSubmit, onCancel }: {
 const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
   const [isReplying, setIsReplying] = useState(false);
   const [replies, setReplies] = useState(comment.replies || []);
+  const [replyToId, setReplyToId] = useState<number | null>(null);
 
   const handleSubmitReply = async (content: string) => {
     try {
+      const mentionedContent = `@${comment.author} ${content}`;
       const response = await fetch(`/api/boards/${boardCode}/${postId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content,
+          content: mentionedContent,
           parentId: comment.id
         }),
       });
@@ -109,13 +111,43 @@ const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
 
       const newReply = await response.json();
       setReplies([...replies, newReply]);
+      setReplyToId(null);
       onReply(comment.id);
-      setIsReplying(false);
     } catch (error) {
       console.error('답글 작성 오류:', error);
       alert('답글 작성에 실패했습니다.');
     }
   };
+
+  if (comment.parentId) {
+    return (
+      <div className="ml-8 mb-2">
+        <div className="bg-gray-50 p-4 rounded">
+          <div className="flex justify-between">
+            <span className="font-bold">{comment.author}</span>
+            <span className="text-gray-500">
+              {new Date(comment.created_at).toLocaleDateString()}
+            </span>
+          </div>
+          <p className="mt-2 whitespace-pre-wrap">{comment.content}</p>
+          <button 
+            onClick={() => setIsReplying(!isReplying)}
+            className="text-blue-500 text-sm mt-2"
+          >
+            답글 달기
+          </button>
+        </div>
+
+        {isReplying && (
+          <CommentForm 
+            parentId={comment.parentId}
+            onSubmit={handleSubmitReply}
+            onCancel={() => setIsReplying(false)}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mb-4">
@@ -126,36 +158,55 @@ const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
             {new Date(comment.created_at).toLocaleDateString()}
           </span>
         </div>
-        <p className="mt-2">{comment.content}</p>
+        <p className="mt-2 whitespace-pre-wrap">{comment.content}</p>
         <button 
-          onClick={() => setIsReplying(!isReplying)}
+          onClick={() => setReplyToId(replyToId === comment.id ? null : comment.id)}
           className="text-blue-500 text-sm mt-2"
         >
           답글 달기
         </button>
       </div>
 
-      {isReplying && (
+      {replyToId === comment.id && (
         <div className="ml-8">
           <CommentForm 
             parentId={comment.id}
             onSubmit={handleSubmitReply}
-            onCancel={() => setIsReplying(false)}
+            onCancel={() => setReplyToId(null)}
           />
         </div>
       )}
       
-      <div className="ml-8 mt-2">
-        {replies.map((reply) => (
-          <Comment 
-            key={reply.id} 
-            comment={reply} 
-            onReply={onReply}
-            boardCode={boardCode}
-            postId={postId}
-          />
-        ))}
-      </div>
+      {replies.map((reply) => (
+        <div key={reply.id}>
+          <div className="ml-8 mt-2">
+            <div className="bg-gray-50 p-4 rounded">
+              <div className="flex justify-between">
+                <span className="font-bold">{reply.author}</span>
+                <span className="text-gray-500">
+                  {new Date(reply.created_at).toLocaleDateString()}
+                </span>
+              </div>
+              <p className="mt-2 whitespace-pre-wrap">{reply.content}</p>
+              <button 
+                onClick={() => setReplyToId(replyToId === reply.id ? null : reply.id)}
+                className="text-blue-500 text-sm mt-2"
+              >
+                답글 달기
+              </button>
+            </div>
+          </div>
+          {replyToId === reply.id && (
+            <div className="ml-8">
+              <CommentForm 
+                parentId={comment.id}
+                onSubmit={handleSubmitReply}
+                onCancel={() => setReplyToId(null)}
+              />
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };
@@ -179,6 +230,7 @@ export default function PostDetailPage() {
     author: string;
     userId: number;
   } | null>(null);
+  const [totalComments, setTotalComments] = useState<number>(0);
 
   useEffect(() => {
     if (!boardCode || !postId) {
@@ -249,10 +301,12 @@ export default function PostDetailPage() {
       }
 
       const data = await response.json();
-      setComments(data);
+      setComments(data.comments);
+      setTotalComments(data.totalCount);
     } catch (error) {
       console.error('댓글 로딩 중 오류:', error);
       setComments([]);
+      setTotalComments(0);
     }
   }, [boardCode, postId]);
 
@@ -416,7 +470,7 @@ export default function PostDetailPage() {
 
         <div className="mt-8">
           <h3 className="text-xl font-semibold mb-4">
-            댓글 <span className="text-gray-500">({comments.length})</span>
+            댓글 <span className="text-gray-500">({totalComments})</span>
           </h3>
           
           <div className="mb-6">
