@@ -42,7 +42,8 @@ export async function GET(
         p.created_at,
         p.view_count,
         (SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 1) as like_count,
-        (SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 0) as dislike_count
+        (SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 0) as dislike_count,
+        p.comments_count
       FROM posts p
       WHERE p.board_id = ?
       ORDER BY p.created_at DESC

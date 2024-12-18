@@ -42,6 +42,7 @@ interface CommentProps {
   onReply: (parentId: number) => void;
   boardCode: string;
   postId: string;
+  setCommentsCount: (count: number) => void;
 }
 
 const CommentForm = ({ parentId, onSubmit, onCancel }: {
@@ -86,7 +87,7 @@ const CommentForm = ({ parentId, onSubmit, onCancel }: {
   );
 };
 
-const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
+const Comment = ({ comment, onReply, boardCode, postId, setCommentsCount }: CommentProps) => {
   const [isReplying, setIsReplying] = useState(false);
   const [replies, setReplies] = useState(comment.replies || []);
   const [replyToId, setReplyToId] = useState<number | null>(null);
@@ -110,9 +111,10 @@ const Comment = ({ comment, onReply, boardCode, postId }: CommentProps) => {
         throw new Error(errorData.error || '답글 작성에 실패했습니다.');
       }
 
-      const newReply = await response.json();
-      setReplies([...replies, newReply]);
+      const data = await response.json();
+      setReplies([...replies, data]);
       setReplyToId(null);
+      setCommentsCount(data.comments_count);
       onReply(comment.id);
     } catch (error) {
       console.error('답글 작성 오류:', error);
@@ -242,7 +244,7 @@ export default function PostDetailPage() {
     author: string;
     userId: number;
   } | null>(null);
-  const [totalComments, setTotalComments] = useState<number>(0);
+  const [commentsCount, setCommentsCount] = useState<number>(0);
 
   useEffect(() => {
     if (!boardCode || !postId) {
@@ -314,11 +316,11 @@ export default function PostDetailPage() {
 
       const data = await response.json();
       setComments(data.comments);
-      setTotalComments(data.totalCount);
+      setCommentsCount(data.comments_count);
     } catch (error) {
       console.error('댓글 로딩 중 오류:', error);
       setComments([]);
-      setTotalComments(0);
+      setCommentsCount(0);
     }
   }, [boardCode, postId]);
 
@@ -436,7 +438,7 @@ export default function PostDetailPage() {
 
         <div className="mt-8">
           <h3 className="text-xl font-semibold mb-4">
-            댓글 <span className="text-gray-500">({totalComments})</span>
+            댓글 <span className="text-gray-500">({commentsCount})</span>
           </h3>
           
           <div className="mb-6">
@@ -462,7 +464,14 @@ export default function PostDetailPage() {
 
           <div className="space-y-4">
             {comments.map((comment) => (
-              <Comment key={comment.id} comment={comment} onReply={setReplyToComment} boardCode={boardCode} postId={postId} />
+              <Comment 
+                key={comment.id} 
+                comment={comment} 
+                onReply={setReplyToComment} 
+                boardCode={boardCode} 
+                postId={postId}
+                setCommentsCount={setCommentsCount}
+              />
             ))}
             {comments.length === 0 && (
               <p className="text-center text-gray-500">아직 작성된 댓글이 없습니다.</p>

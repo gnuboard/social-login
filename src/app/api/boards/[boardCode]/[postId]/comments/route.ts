@@ -77,7 +77,7 @@ export async function GET(
     
     return NextResponse.json({
       comments: mainComments,
-      totalCount: rows.length
+      comments_count: rows.length
     });
   } catch (error) {
     console.error('댓글 조회 에러:', error);
@@ -156,27 +156,31 @@ export async function POST(
       [content, author, userId, postId, parentId || null, mentionedUserId || null]
     );
 
-    // 게시글의 댓글 수 업데이트
+    // 댓글 저장 후 게시글의 댓글 수 업데이트
     await connection.query(
       'UPDATE posts SET comments_count = comments_count + 1 WHERE id = ?',
       [postId]
     );
 
-    // 새로 작성된 댓글 조회
+    // 새로 작성된 댓글과 함께 업데이트된 댓글 수를 조회
     const [newComment] = await connection.query(
       `SELECT 
         c.*,
         u.name as author_name,
-        mu.name as mentioned_user_name
+        mu.name as mentioned_user_name,
+        (SELECT comments_count FROM posts WHERE id = ?) as comments_count
        FROM comments c
        LEFT JOIN users u ON c.user_id = u.id
        LEFT JOIN users mu ON c.mentioned_user_id = mu.id
        WHERE c.id = ?`,
-      [(result as any).insertId]
+      [postId, (result as any).insertId]
     );
 
     await connection.commit();
-    return NextResponse.json(newComment[0]);
+    return NextResponse.json({
+      ...newComment[0],
+      comments_count: newComment[0].comments_count
+    });
   } catch (error) {
     if (connection) {
       await connection.rollback();
