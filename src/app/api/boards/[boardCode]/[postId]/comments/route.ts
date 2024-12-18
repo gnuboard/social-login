@@ -30,11 +30,9 @@ export async function GET(
     }
 
     const [rows] = await connection.query(
-      'SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC',
+      'SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC',
       [postId]
     );
-    
-    console.log('조회된 댓글:', rows);
     
     return NextResponse.json(rows || []);
   } catch (error) {

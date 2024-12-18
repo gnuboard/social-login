@@ -103,8 +103,6 @@ export default function PostDetailPage() {
     if (!boardCode || !postId) return;
 
     try {
-      console.log('댓글 로딩 시작:', { boardCode, postId });
-      
       const response = await fetch(`/api/boards/${boardCode}/${postId}/comments`, {
         method: 'GET',
         headers: {
@@ -130,7 +128,6 @@ export default function PostDetailPage() {
       }
 
       const data = await response.json();
-      console.log('받은 댓글 데이터:', data);
 
       if (Array.isArray(data)) {
         setComments(data);
