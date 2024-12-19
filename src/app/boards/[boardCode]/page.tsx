@@ -78,7 +78,7 @@ export default async function BoardPage({ params }: Props) {
                               ↳
                             </span>
                           )}
-                          {post.title}
+                          {post.display_title}
                         </span>
                       </Link>
                     </td>
