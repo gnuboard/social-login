@@ -65,7 +65,7 @@ export default async function BoardPage({ params }: Props) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {posts.map((post: any, index: number) => (
+                {posts.map((post: Post, index: number) => (
                   <tr key={post.id} className="hover:bg-gray-50">
                     <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {posts.length - index}
@@ -73,6 +73,11 @@ export default async function BoardPage({ params }: Props) {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Link href={`/boards/${resolvedParams.boardCode}/${post.id}`}>
                         <span className="text-sm font-medium text-gray-900 hover:text-blue-600">
+                          {post.depth > 0 && (
+                            <span className="inline-block" style={{ marginLeft: `${post.depth * 10}px` }}>
+                              ↳
+                            </span>
+                          )}
                           {post.title}
                         </span>
                       </Link>

@@ -30,6 +30,9 @@ export interface BoardFormData {
 
 export interface Post {
   id: number;
+  group_id: number;
+  sequence: number;
+  depth: number;
   board_id: number;
   user_id: number;
   author: string;
@@ -39,9 +42,11 @@ export interface Post {
   updated_at: string;
   deleted_at: string | null;
   view_count: number;
+  like_count: number;
+  dislike_count: number;
   comments_count: number;
   attachment_count: number;
-}
+  }
 
 export interface RouteParams {
   params: {

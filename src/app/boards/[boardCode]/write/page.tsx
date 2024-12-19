@@ -26,7 +26,7 @@ export default function WritePostPage() {
         const data = await response.json();
         setParentPost(data);
         // 제목과 내용 설정
-        setTitle(`Re: ${data.title}`);
+        setTitle(`${data.title}`);
         setContent(`\n\n> ${data.content.split('\n').join('\n> ')}`);
       } catch (error) {
         console.error('원글 로딩 실패:', error);
@@ -42,12 +42,12 @@ export default function WritePostPage() {
 
     try {
       // 답글인 경우 원글의 그룹 정보 설정
-      let grpInfo = { grp_id: 0, grp_seq: 0, depth: 0 };
+      let grpInfo = { group_id: 0, sequence: 0, depth: 0 };
       
       if (parent_id && parentPost) {
         grpInfo = {
-          grp_id: parentPost.grp_id || parentPost.id, // 원글이 최상위글인 경우 id를 grp_id로 사용
-          grp_seq: (parentPost.grp_seq || 0) + 1,     // 원글의 grp_seq + 1
+          group_id: parentPost.group_id || parentPost.id, // 원글이 최상위글인 경우 id를 group_id로 사용
+          sequence: (parentPost.sequence || 0) + 1,     // 원글의 sequence + 1
           depth: (parentPost.depth || 0) + 1          // 원글의 depth + 1
         };
       }

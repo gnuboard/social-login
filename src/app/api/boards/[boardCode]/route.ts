@@ -1,7 +1,6 @@
 // src/app/api/board/[boardCode]/route.ts
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { Post } from '@/types';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
@@ -42,12 +41,21 @@ export async function GET(
         p.author,
         p.created_at,
         p.view_count,
+        p.depth,
+        CONCAT(
+          REPEAT('　', p.depth),
+          CASE 
+            WHEN p.depth > 0 THEN CONCAT('↳ ')
+            ELSE ''
+          END,
+          p.title
+        ) as display_title,
         (SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 1) as like_count,
         (SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 0) as dislike_count,
         p.comments_count
       FROM posts p
       WHERE p.board_id = ?
-      ORDER BY p.created_at DESC
+      ORDER BY p.group_id DESC, p.sequence ASC
       LIMIT ? OFFSET ?
     `;
 
@@ -84,11 +92,11 @@ export async function POST(
 
   try {
     const { boardCode } = await params;
-    const { title, content, parent_id, grp_id, grp_seq, depth } = await request.json();
+    const { title, content, parent_id, group_id, sequence, depth } = await request.json();
 
-    // 사용자 ID 조회
+    // 사용자 정보 조회 (이름 포함)
     const [userResult] = await connection.query(
-      'SELECT id FROM users WHERE email = ?',
+      'SELECT id, name FROM users WHERE email = ?',
       [session.user?.email]
     );
 
@@ -97,6 +105,7 @@ export async function POST(
     }
 
     const userId = userResult[0].id;
+    const userName = userResult[0].name;
 
     // 게시판 ID 조회
     const [boardResult] = await connection.query(
@@ -113,29 +122,59 @@ export async function POST(
     // 트랜잭션 시작
     await connection.beginTransaction();
 
-    // 답글인 경우 grp_seq 업데이트
+    // 답글인 경우 부모글의 정보 조회
+    let groupId = null;
+    let parentDepth = 0;
+    let newSequence = 0;
+    
     if (parent_id) {
-      await connection.query(
-        `UPDATE posts 
-         SET grp_seq = grp_seq + 1 
-         WHERE board_id = ? AND grp_id = ? AND grp_seq > ?`,
-        [boardId, grp_id, grp_seq - 1]
+      const [parentPost] = await connection.query(
+        'SELECT group_id, sequence, depth FROM posts WHERE id = ?',
+        [parent_id]
       );
+      
+      if (Array.isArray(parentPost) && parentPost.length > 0) {
+        groupId = parentPost[0].group_id;
+        parentDepth = parentPost[0].depth;
+        const parentSequence = parentPost[0].sequence;
+
+        // 같은 group_id 내에서 부모글의 sequence보다 큰 sequence를 가진 게시글들의 sequence를 1씩 증가
+        await connection.query(
+          `UPDATE posts 
+           SET sequence = sequence + 1 
+           WHERE group_id = ? AND sequence > ?
+           ORDER BY sequence DESC`,
+          [groupId, parentSequence]
+        );
+
+        // 새 답글의 sequence는 부모글의 sequence + 1
+        newSequence = parentSequence + 1;
+      }
     }
 
     // 게시글 저장
     const [result] = await connection.query(
       `INSERT INTO posts (
         board_id, title, content,
-        grp_id, grp_seq, depth, 
-        user_id, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+        group_id, sequence, depth, 
+        user_id, author, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         boardId, title, content,
-        grp_id || null, grp_seq, depth,
-        userId
+        groupId, 
+        parent_id ? newSequence : 0,
+        parent_id ? parentDepth + 1 : 0,
+        userId, userName
       ]
     );
+
+    // 원글인 경우(parent_id가 없는 경우) group_id를 방금 생성된 게시글의 id로 업데이트
+    if (!parent_id) {
+      await connection.query(
+        'UPDATE posts SET group_id = ? WHERE id = ?',
+        [result.insertId, result.insertId]
+      );
+    }
 
     await connection.commit();
     
