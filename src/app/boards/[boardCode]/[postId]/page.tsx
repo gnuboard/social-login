@@ -488,6 +488,13 @@ export default function PostDetailPage() {
               글쓰기
             </Link>
             
+            <Link 
+              href={`/boards/${boardCode}/write?parent_id=${postId}`}
+              className="px-4 py-2 rounded-md bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+            >
+              답글
+            </Link>
+            
             {session?.user && post.author && (
               session.user.email === post.author || 
               session.user.name === post.author

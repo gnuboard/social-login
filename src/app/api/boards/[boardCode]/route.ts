@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { Post } from '@/types';
 import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(
   request: Request,
@@ -71,74 +72,79 @@ export async function POST(
   { params }: { params: { boardCode: string } }
 ) {
   const connection = await pool.getConnection();
+  const session = await getServerSession(authOptions);
   
+  if (!session) {
+    connection.release();
+    return NextResponse.json(
+      { error: '로그인이 필요합니다.' },
+      { status: 401 }
+    );
+  }
+
   try {
     const { boardCode } = await params;
-    const session = await getServerSession();
+    const { title, content, parent_id, grp_id, grp_seq, depth } = await request.json();
+
+    // 사용자 ID 조회
+    const [userResult] = await connection.query(
+      'SELECT id FROM users WHERE email = ?',
+      [session.user?.email]
+    );
+
+    if (!Array.isArray(userResult) || userResult.length === 0) {
+      throw new Error('사용자를 찾을 수 없습니다.');
+    }
+
+    const userId = userResult[0].id;
+
+    // 게시판 ID 조회
+    const [boardResult] = await connection.query(
+      'SELECT id FROM boards WHERE code = ?',
+      [boardCode]
+    );
     
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
+    if (!Array.isArray(boardResult) || boardResult.length === 0) {
+      throw new Error('존재하지 않는 게시판입니다.');
     }
-
-    const body = await request.json();
     
-    if (!body.title || !body.content) {
-      return NextResponse.json(
-        { error: '제목과 내용은 필수 입력사항입니다.' },
-        { status: 400 }
+    const boardId = boardResult[0].id;
+
+    // 트랜잭션 시작
+    await connection.beginTransaction();
+
+    // 답글인 경우 grp_seq 업데이트
+    if (parent_id) {
+      await connection.query(
+        `UPDATE posts 
+         SET grp_seq = grp_seq + 1 
+         WHERE board_id = ? AND grp_id = ? AND grp_seq > ?`,
+        [boardId, grp_id, grp_seq - 1]
       );
     }
 
-    const { title, content } = body;
+    // 게시글 저장
+    const [result] = await connection.query(
+      `INSERT INTO posts (
+        board_id, title, content,
+        grp_id, grp_seq, depth, 
+        user_id, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        boardId, title, content,
+        grp_id || null, grp_seq, depth,
+        userId
+      ]
+    );
 
-    // 게시판 존재 여부 확인
-    const [boards] = await connection.execute(`
-      SELECT id FROM boards WHERE code = ?
-    `, [boardCode]);
-
-    if (!Array.isArray(boards) || boards.length === 0) {
-      return NextResponse.json(
-        { error: '게시판을 찾을 수 없습니다.' },
-        { status: 404 }
-      );
-    }
-
-    const boardId = boards[0].id;
-
-    // 사용자 정보 조회
-    const [users] = await connection.execute(`
-      SELECT id, name FROM users WHERE email = ?
-    `, [session.user.email]);
-
-    if (!Array.isArray(users) || users.length === 0) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      );
-    }
-
-    const userId = users[0].id;
-    const author = users[0].name;
-
-    // 게시글 작성
-    const [result] = await connection.execute(`
-      INSERT INTO posts (title, content, user_id, board_id, author, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `, [title, content, userId, boardId, author]);
-
-    return NextResponse.json({
-      message: '게시글이 성공적으로 작성되었습니다.',
-      // @ts-ignore
-      postId: result.insertId
-    }, { status: 201 });
-
+    await connection.commit();
+    
+    return NextResponse.json({ id: result.insertId });
   } catch (error) {
-    console.error('게시글 작성 에러:', error);
+    await connection.rollback();
+    console.error('Error creating post:', error);
     return NextResponse.json(
-      { error: '게시글 작성 중 오류가 발생했습니다.' },
+      { error: 'Failed to create post' },
       { status: 500 }
     );
   } finally {

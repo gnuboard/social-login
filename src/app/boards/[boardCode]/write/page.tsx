@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 
 export default function WritePostPage() {
   const router = useRouter();
@@ -10,12 +10,48 @@ export default function WritePostPage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const searchParams = useSearchParams();
+  const parent_id = searchParams.get('parent_id');
+  const [parentPost, setParentPost] = useState<Post | null>(null);
+
+  useEffect(() => {
+    // 부모 게시글 정보 가져오기
+    const fetchParentPost = async () => {
+      if (!parent_id) return;
+      
+      try {
+        const response = await fetch(`/api/boards/${params.boardCode}/${parent_id}`);
+        if (!response.ok) throw new Error('원글을 불러오는데 실패했습니다.');
+        
+        const data = await response.json();
+        setParentPost(data);
+        // 제목과 내용 설정
+        setTitle(`Re: ${data.title}`);
+        setContent(`\n\n> ${data.content.split('\n').join('\n> ')}`);
+      } catch (error) {
+        console.error('원글 로딩 실패:', error);
+      }
+    };
+
+    fetchParentPost();
+  }, [parent_id, params.boardCode]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      // 답글인 경우 원글의 그룹 정보 설정
+      let grpInfo = { grp_id: 0, grp_seq: 0, depth: 0 };
+      
+      if (parent_id && parentPost) {
+        grpInfo = {
+          grp_id: parentPost.grp_id || parentPost.id, // 원글이 최상위글인 경우 id를 grp_id로 사용
+          grp_seq: (parentPost.grp_seq || 0) + 1,     // 원글의 grp_seq + 1
+          depth: (parentPost.depth || 0) + 1          // 원글의 depth + 1
+        };
+      }
+
       const response = await fetch(`/api/boards/${boardCode}`, {
         method: 'POST',
         headers: {
@@ -24,6 +60,8 @@ export default function WritePostPage() {
         body: JSON.stringify({
           title,
           content,
+          parent_id: parent_id ? parseInt(parent_id) : null,
+          ...grpInfo
         }),
       });
 
