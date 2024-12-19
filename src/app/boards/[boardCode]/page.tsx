@@ -52,58 +52,39 @@ export default async function BoardPage({ params }: Props) {
         </div>
         
         {posts && posts.length > 0 ? (
-          <div className="grid gap-4">
-            {posts.map((post: any) => (
-              <div 
-                key={post.id} 
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200"
-              >
-                <Link href={`/boards/${resolvedParams.boardCode}/${post.id}`}>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2 hover:text-blue-600 transition-colors duration-200 cursor-pointer">
-                    {post.title}
-                  </h2>
-                </Link>
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <div className="flex items-center space-x-4">
-                    <span className="flex items-center">
-                      <svg 
-                        className="w-4 h-4 mr-1" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      {post.author}
-                    </span>
-                    <span className="flex items-center">
-                      <svg 
-                        className="w-4 h-4 mr-1" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      {post.view_count}
-                    </span>
-                    <span className="flex items-center text-green-600">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                      </svg>
-                      {post.like_count || 0}
-                    </span>
-                    <span className="flex items-center text-red-600">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v2a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 9V3m-7 10h2M7 4h10" />
-                      </svg>
-                      {post.dislike_count || 0}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">번호</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성자</th>
+                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">조회수</th>
+                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">좋아요</th>
+                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">싫어요</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {posts.map((post: any, index: number) => (
+                  <tr key={post.id} className="hover:bg-gray-50">
+                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {posts.length - index}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Link href={`/boards/${resolvedParams.boardCode}/${post.id}`}>
+                        <span className="text-sm font-medium text-gray-900 hover:text-blue-600">
+                          {post.title}
+                        </span>
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{post.author}</td>
+                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">{post.view_count || 0}</td>
+                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-green-600">{post.like_count || 0}</td>
+                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-red-600">{post.dislike_count || 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
