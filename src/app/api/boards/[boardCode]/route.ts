@@ -143,8 +143,6 @@ export async function POST(
     let newSequence = 0;
     
     if (parent_id) {
-      // connection.query()의 결과는 [rows, fields] 형태의 배열을 반환합니다.
-      // 구조 ��해 할당으로 첫 번째 요소(rows)만 parentPost 변수에 할당합니다.
       const [parentPost] = await connection.query(
         'SELECT group_id, sequence, depth FROM posts WHERE id = ?',
         [parent_id]
@@ -155,35 +153,16 @@ export async function POST(
         parentDepth = parentPost[0].depth;
         const parentSequence = parentPost[0].sequence;
 
-        console.log('=== 부모 게시글 정보 ===');
-        console.log('group_id:', groupId);
-        console.log('parent depth:', parentDepth);
-        console.log('parent sequence:', parentSequence);
+        // 새 글의 sequence는 부모 sequence + 1
+        newSequence = parentSequence + 1;
 
-        // 같은 depth의 마지막 sequence 찾기
-        const [lastSiblingResult] = await connection.query(
-          `SELECT COALESCE(MAX(sequence), 0) as maxSeq 
-           FROM posts 
-           WHERE group_id = ? 
-           AND depth = ?
-           AND sequence > ?`,
-          [groupId, parentDepth + 1, parentSequence]
-        );
-
-        const lastSiblingSequence = lastSiblingResult[0].maxSeq;
-        newSequence = lastSiblingSequence > 0 ? lastSiblingSequence + 1 : parentSequence + 1;
-
-        console.log('=== 계산된 새 시퀀스 정보 ===');
-        console.log('last sibling sequence:', lastSiblingSequence);
-        console.log('new sequence:', newSequence);
-
-        // 새로운 sequence 이상의 값을 가진 게시글들의 sequence를 1씩 증가
+        // 부모 sequence보다 큰 모든 글의 sequence를 1 증가
         await connection.query(
           `UPDATE posts 
            SET sequence = sequence + 1 
-           WHERE group_id = ? AND sequence >= ?
-           ORDER BY sequence DESC`,
-          [groupId, newSequence]
+           WHERE group_id = ? 
+           AND sequence > ?`,
+          [groupId, parentSequence]
         );
       }
     }
