@@ -19,14 +19,17 @@ const Header = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
             <Link href="/" className="flex-shrink-0">
-              <Image
-                src="/next.svg"
-                alt="Next.js Logo"
-                width={100}
-                height={20}
-                className="dark:invert"
-                priority
-              />
+              <div className="flex items-center space-x-2">
+                <Image
+                  src="/devwant-logo.svg"
+                  alt="DevWant Logo"
+                  width={32}
+                  height={32}
+                  className="dark:invert"
+                  priority
+                />
+                <span className="text-xl font-bold text-gray-900">DevWant</span>
+              </div>
             </Link>
             
             <nav className="hidden md:flex space-x-6">

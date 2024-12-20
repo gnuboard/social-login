@@ -139,15 +139,31 @@ const Comment = ({ comment, onReply, boardCode, postId, setCommentsCount }: Comm
       <div className="ml-8 mb-2">
         <div className="bg-gray-50 p-4 rounded">
           <div className="flex justify-between">
-            <span className="font-bold">{comment.author}</span>
-            <span className="text-gray-500">
+            <span className="text-sm font-medium flex items-center gap-2">
+              <Image
+                src="/icons/user.svg"
+                alt="작성자"
+                width={14}
+                height={14}
+                className="text-gray-500"
+              />
+              {comment.author}
+            </span>
+            <span className="text-xs text-gray-500 flex items-center gap-2">
+              <Image
+                src="/icons/calendar.svg"
+                alt="작성일"
+                width={14}
+                height={14}
+                className="text-gray-500"
+              />
               {new Date(comment.created_at).toLocaleDateString()}
             </span>
           </div>
-          {renderCommentContent(comment)}
+          <div className="text-sm">{renderCommentContent(comment)}</div>
           <button 
             onClick={() => setIsReplying(!isReplying)}
-            className="text-blue-500 text-sm mt-2"
+            className="text-xs text-blue-500 mt-2"
           >
             답글 달기
           </button>
@@ -213,15 +229,31 @@ const Comment = ({ comment, onReply, boardCode, postId, setCommentsCount }: Comm
           <div className="ml-8 mt-2">
             <div className="bg-gray-50 p-4 rounded">
               <div className="flex justify-between">
-                <span className="font-bold">{reply.author}</span>
-                <span className="text-gray-500">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Image
+                    src="/icons/user.svg"
+                    alt="작성자"
+                    width={14}
+                    height={14}
+                    className="text-gray-500"
+                  />
+                  {reply.author}
+                </span>
+                <span className="text-xs text-gray-500 flex items-center gap-2">
+                  <Image
+                    src="/icons/calendar.svg"
+                    alt="작성일"
+                    width={14}
+                    height={14}
+                    className="text-gray-500"
+                  />
                   {new Date(reply.created_at).toLocaleDateString()}
                 </span>
               </div>
-              {renderCommentContent(reply)}
+              <div className="text-sm">{renderCommentContent(reply)}</div>
               <button 
                 onClick={() => setReplyToId(replyToId === reply.id ? null : reply.id)}
-                className="text-blue-500 text-sm mt-2"
+                className="text-xs text-blue-500 mt-2"
               >
                 답글 달기
               </button>
@@ -295,7 +327,7 @@ export default function PostDetailPage() {
 
     if (session.user && post?.author && 
         (session.user.email === post.author || session.user.name === post.author)) {
-      alert('자신의 글에는 추천/반대를 할 수 없습니다.');
+      alert('자신의 글에는 추천/반대를 할 수 없습��다.');
       return;
     }
 
@@ -419,7 +451,7 @@ export default function PostDetailPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-lg font-medium mb-3">{post.title}</h1>
+        <h1 className="text-base font-medium mb-3">{post.title}</h1>
         <div className="flex items-center gap-4 text-xs text-gray-600 mb-4">
           <span className="flex items-center gap-2">
             <Image
@@ -439,10 +471,10 @@ export default function PostDetailPage() {
               height={16}
               className="text-gray-500"
             />
-            {new Date(post.created_at).toISOString().split('T')[0]}
+            {new Date(post.created_at).toLocaleDateString()}
           </span>
         </div>
-        <div className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap min-h-[200px]">
+        <div className="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap min-h-[200px]">
           {post.content}
         </div>
         <div className="mt-6 flex items-center justify-center gap-8 border-t border-b py-4">
@@ -472,7 +504,7 @@ export default function PostDetailPage() {
         </div>
 
         <div className="mt-8">
-          <h3 className="text-base font-medium mb-4">
+          <h3 className="text-sm font-medium mb-4">
             댓글 <span className="text-gray-500 text-xs">({commentsCount})</span>
           </h3>
           
@@ -527,7 +559,7 @@ export default function PostDetailPage() {
               href={`/boards/${boardCode}/write?parent_id=${postId}`}
               className="px-3 py-1.5 text-sm rounded-md bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
             >
-              답글
+              ���글
             </Link>
             
             {session?.user && post.author && (

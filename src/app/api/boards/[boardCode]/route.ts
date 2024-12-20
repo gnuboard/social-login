@@ -10,7 +10,6 @@ export async function GET(
 ) {
   try {
     const { boardCode } = await params;
-    console.log('요청된 게시판 코드:', boardCode);
     
     const [boardResult] = await pool.query(
       'SELECT * FROM boards WHERE code = ?',

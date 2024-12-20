@@ -19,17 +19,19 @@ export const authOptions = {
     KakaoProvider({
       clientId: process.env.KAKAO_CLIENT_ID!,
       clientSecret: process.env.KAKAO_CLIENT_SECRET!,
+      async profile(profile) {
+        console.log('Kakao profile:', JSON.stringify(profile, null, 2))
+        return {
+          id: profile.id,
+          name: profile.properties?.nickname,
+          email: profile.kakao_account?.email,
+          image: profile.properties?.profile_image,
+        }
+      },
     }),
   ],
   callbacks: {
     async signIn({ user, account, profile, credentials, email, trigger }, req) {
-      console.log('로그인 시도 정보:', {
-        user,
-        account,
-        profile,
-        email,
-        credentials
-      });
 
       if (account?.provider === "kakao") {
         const kakaoProfile = profile as any;
