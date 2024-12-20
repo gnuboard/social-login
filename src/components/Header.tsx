@@ -27,14 +27,7 @@ const Header = () => {
           <div className="flex items-center space-x-8">
             <Link href="/" className="flex-shrink-0">
               <div className="flex items-center space-x-2">
-                <Image
-                  src="/devwant-logo.svg"
-                  alt="DevWant Logo"
-                  width={32}
-                  height={32}
-                  className="dark:invert"
-                  priority
-                />
+                <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-lg shadow-md" />
                 <span className="text-xl font-bold text-gray-900">DevWant</span>
               </div>
             </Link>
