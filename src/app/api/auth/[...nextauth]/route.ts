@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import NaverProvider from "next-auth/providers/naver";
+import KakaoProvider from "next-auth/providers/kakao";
 import pool from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -15,6 +16,10 @@ export const authOptions = {
       clientId: process.env.NAVER_CLIENT_ID!,
       clientSecret: process.env.NAVER_CLIENT_SECRET!,
     }),
+    KakaoProvider({
+      clientId: process.env.KAKAO_CLIENT_ID!,
+      clientSecret: process.env.KAKAO_CLIENT_SECRET!,
+    }),
   ],
   callbacks: {
     async signIn({ user, account, profile, credentials, email, trigger }, req) {
@@ -26,6 +31,13 @@ export const authOptions = {
         credentials
       });
 
+      if (account?.provider === "kakao") {
+        const kakaoProfile = profile as any;
+        user.name = kakaoProfile.properties?.nickname || user.name;
+        user.email = kakaoProfile.kakao_account?.email || user.email;
+        user.image = kakaoProfile.properties?.profile_image || user.image;
+      }
+
       if (account?.provider === "naver") {
         const naverProfile = profile as any;
         user.name = naverProfile.response?.name || user.name;
@@ -33,7 +45,7 @@ export const authOptions = {
         user.image = naverProfile.response?.profile_image || user.image;
       }
 
-      if (account?.provider === "google" || account?.provider === "naver") {
+      if (account?.provider === "google" || account?.provider === "naver" || account?.provider === "kakao") {
         try {
           const connection = await pool.getConnection();
           const uuid = uuidv4();

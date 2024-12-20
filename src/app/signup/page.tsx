@@ -94,14 +94,14 @@ const SignupPage: NextPage = () => {
               <span className="ml-4 text-gray-700 dark:text-gray-200 font-medium">Google로 회원가입</span>
             </button>
 
+            <button className="group w-full flex items-center justify-center px-6 py-4 rounded-2xl bg-[#03C75A] hover:bg-[#02b351] transform hover:scale-[1.02] transition-all duration-200 shadow-md hover:shadow-lg">
+              <NaverIcon className="text-white" />
+              <span className="ml-4 text-white font-medium">네이버로 회원가입</span>
+            </button>
+
             <button className="group w-full flex items-center justify-center px-6 py-4 rounded-2xl bg-[#FEE500] hover:bg-[#FDD800] transform hover:scale-[1.02] transition-all duration-200 shadow-md hover:shadow-lg">
               <KakaoIcon />
               <span className="ml-4 text-gray-800 font-medium">카카오로 회원가입</span>
-            </button>
-
-            <button className="group w-full flex items-center justify-center px-6 py-4 rounded-2xl bg-[#03C75A] hover:bg-[#02b351] transform hover:scale-[1.02] transition-all duration-200 shadow-md hover:shadow-lg">
-              <NaverIcon />
-              <span className="ml-4 text-white font-medium">네이버로 회원가입</span>
             </button>
           </div>
 
