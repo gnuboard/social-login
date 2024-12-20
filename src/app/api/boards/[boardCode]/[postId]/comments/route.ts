@@ -67,13 +67,13 @@ export async function GET(
       }
     });
 
-    // 디버깅을 위한 로그 추가
-    console.log('Total comments:', rows.length);
-    console.log('Main comments:', mainComments.length);
-    console.log('Comments with replies:', mainComments.map(c => ({
-      id: c.id,
-      repliesCount: c.replies.length
-    })));
+    // // 디버깅을 위한 로그 추가
+    // console.log('Total comments:', rows.length);
+    // console.log('Main comments:', mainComments.length);
+    // console.log('Comments with replies:', mainComments.map(c => ({
+    //   id: c.id,
+    //   repliesCount: c.replies.length
+    // })));
     
     return NextResponse.json({
       comments: mainComments,

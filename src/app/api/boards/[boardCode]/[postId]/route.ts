@@ -27,6 +27,11 @@ export async function GET(
   
   try {
     const session = await getServerSession(authOptions);
+    const { boardCode, postId } = await Promise.resolve(params);
+    
+    // 세션 기반 조회수 중복 방지를 위한 키 생성
+    const viewKey = `post_${postId}_viewed`;
+    const hasViewed = request.cookies.get(viewKey);
 
     const [userResult] = await connection.execute<UserResult[]>(
       'SELECT id FROM users WHERE email = ?',
@@ -34,9 +39,7 @@ export async function GET(
     );
     const userId = userResult?.[0]?.id;
 
-    const resolvedParams = await Promise.resolve(params);
-    const { boardCode, postId } = resolvedParams;
-
+    // 게시글 데이터 먼저 조회
     const [posts] = await connection.execute<PostResult[]>(`
       SELECT 
         p.*,
@@ -61,13 +64,52 @@ export async function GET(
       );
     }
 
+    // 트랜잭션 시작
+    await connection.beginTransaction();
+
+    try {
+      // 조회수 업데이트를 위한 락 획득과 함께 조회
+      const [viewCheckResult] = await connection.execute(`
+        SELECT view_count 
+        FROM posts 
+        WHERE id = ? 
+        FOR UPDATE
+      `, [postId]);
+
+      // 조회 기록이 없을 경우에만 조회수 증가
+      if (!hasViewed) {
+        await connection.execute(`
+          UPDATE posts 
+          SET view_count = view_count + 1 
+          WHERE id = ?
+        `, [postId]);
+      }
+
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
+
     if (posts[0]) {
       const post = posts[0];
       post.user_vote = post.raw_vote_type === null ? null :
                        post.raw_vote_type === 1 ? true : false;
     }
 
-    return NextResponse.json(posts[0]);
+    const response = NextResponse.json(posts[0]);
+    
+    // 쿠키 설정 (24시간 유효)
+    if (!hasViewed) {
+      response.cookies.set(viewKey, 'true', {
+        maxAge: 86400,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+    }
+
+    return response;
 
   } catch (error) {
     console.error('Detailed error:', error);
@@ -150,7 +192,7 @@ export async function PUT(
       WHERE id = ?
     `, [body.title, body.content, postId]);
 
-    return new Response(JSON.stringify({ message: '게시글이 수정되었습니다.' }), { 
+    return new Response(JSON.stringify({ message: '게시글��� 수정되었습니다.' }), { 
       status: 200 
     });
     

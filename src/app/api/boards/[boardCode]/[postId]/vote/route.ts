@@ -92,7 +92,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       action = 'new';
     }
 
-    // posts 테이블의 추천/반대 수 업데이트
+    // posts 테이블의 좋아요/싫어요 수 업데이트
     await connection.execute(`
       UPDATE posts 
       SET like_count = like_count + ?,

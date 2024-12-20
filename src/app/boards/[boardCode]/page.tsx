@@ -59,18 +59,18 @@ export default async function BoardPage({ params }: Props) {
             <table className="min-w-full bg-white">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">번호</th>
-                  <th className="px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">제목</th>
-                  <th className="px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">작성자</th>
-                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">조회수</th>
-                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">좋아요</th>
-                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">싫어요</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider text-center">번호</th>
+                  <th className="px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider text-center">제목</th>
+                  <th className="px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider text-center">작성자</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider text-center">조회수</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider text-center">좋아요</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider text-center">싫어요</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {posts.map((post: Post, index: number) => (
                   <tr key={post.id} className="hover:bg-gray-50">
-                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-gray-500">
+                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-gray-500 text-center">
                       {posts.length - index}
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap">
@@ -82,14 +82,14 @@ export default async function BoardPage({ params }: Props) {
                             </span>
                           )}
                           {post.title}
-                          <span className="text-gray-400 text-xs">{post.display_title}</span>
+                          {/* <span className="text-gray-400 text-xs">{post.display_title}</span> */}
                         </span>
                       </Link>
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-xs text-gray-500">{post.author}</td>
-                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-gray-500">{post.view_count || 0}</td>
-                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-green-600">{post.like_count || 0}</td>
-                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-red-600">{post.dislike_count || 0}</td>
+                    <td className="px-6 py-3 whitespace-nowrap text-xs text-gray-500 text-center">{post.author}</td>
+                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-gray-500 text-center">{post.view_count || 0}</td>
+                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-green-600 text-center">{post.like_count || 0}</td>
+                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-red-600 text-center">{post.dislike_count || 0}</td>
                   </tr>
                 ))}
               </tbody>

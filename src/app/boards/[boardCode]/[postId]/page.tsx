@@ -327,7 +327,7 @@ export default function PostDetailPage() {
 
     if (session.user && post?.author && 
         (session.user.email === post.author || session.user.name === post.author)) {
-      alert('자신의 글에는 추천/반대를 할 수 없습��다.');
+      alert('자신의 글에는 좋아요/싫어요를 할 수 없습니다.');
       return;
     }
 
@@ -473,6 +473,16 @@ export default function PostDetailPage() {
             />
             {new Date(post.created_at).toLocaleDateString()}
           </span>
+          <span className="flex items-center gap-2">
+            <Image
+              src="/icons/eye.svg"
+              alt="조회수"
+              width={16}
+              height={16}
+              className="text-gray-500"
+            />
+            조회 {post.view_count || 0}
+          </span>
         </div>
         <div className="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap min-h-[200px]">
           {post.content}
@@ -487,7 +497,7 @@ export default function PostDetailPage() {
             }`}
           >
             <FaThumbsUp />
-            <span>추천 {likeCount}</span>
+            <span>좋아요 {likeCount}</span>
           </button>
           
           <button
@@ -499,7 +509,7 @@ export default function PostDetailPage() {
             }`}
           >
             <FaThumbsDown />
-            <span>반대 {dislikeCount}</span>
+            <span>싫어요 {dislikeCount}</span>
           </button>
         </div>
 
@@ -541,7 +551,7 @@ export default function PostDetailPage() {
               />
             ))}
             {comments.length === 0 && (
-              <p className="text-center text-gray-500">아직 작성된 댓글이 없습니다.</p>
+              <p className="text-center text-gray-500 text-sm">아직 작성된 댓글이 없습니다.</p>
             )}
           </div>
         </div>
@@ -559,7 +569,7 @@ export default function PostDetailPage() {
               href={`/boards/${boardCode}/write?parent_id=${postId}`}
               className="px-3 py-1.5 text-sm rounded-md bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
             >
-              ���글
+              답글
             </Link>
             
             {session?.user && post.author && (
