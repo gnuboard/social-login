@@ -29,23 +29,26 @@ async function getPosts(boardCode: string) {
   }
   
   const data = await response.json();
-  return data;
+  return {
+    title: data.board.title || boardCode,
+    posts: data.posts
+  };
 }
 
 export default async function BoardPage({ params }: Props) {
   try {
     const resolvedParams = await params;
-    const posts = await getPosts(resolvedParams.boardCode);
+    const { title, posts } = await getPosts(resolvedParams.boardCode);
     
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">
-            {resolvedParams.boardCode} 게시판
+          <h1 className="text-2xl font-bold text-gray-800">
+            {title}
           </h1>
           <Link 
             href={`/boards/${resolvedParams.boardCode}/write`}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors duration-200 text-sm"
           >
             글쓰기
           </Link>
@@ -56,36 +59,37 @@ export default async function BoardPage({ params }: Props) {
             <table className="min-w-full bg-white">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">번호</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성자</th>
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">조회수</th>
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">좋아요</th>
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">싫어요</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">번호</th>
+                  <th className="px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">제목</th>
+                  <th className="px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">작성자</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">조회수</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">좋아요</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">싫어요</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {posts.map((post: Post, index: number) => (
                   <tr key={post.id} className="hover:bg-gray-50">
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-gray-500">
                       {posts.length - index}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-3 whitespace-nowrap">
                       <Link href={`/boards/${resolvedParams.boardCode}/${post.id}`}>
-                        <span className="text-sm font-medium text-gray-900 hover:text-blue-600">
+                        <span className="text-sm font-normal text-gray-900 hover:text-blue-600">
                           {post.depth > 0 && (
-                            <span className="inline-block" style={{ marginLeft: `${post.depth * 10}px` }}>
-                              ↳
+                            <span className="inline-block text-gray-400" style={{ marginLeft: `${post.depth * 15}px` }}>
+                              └&nbsp;
                             </span>
                           )}
-                          {post.display_title}
+                          {post.title}
+                          <span className="text-gray-400 text-xs">{post.display_title}</span>
                         </span>
                       </Link>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{post.author}</td>
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">{post.view_count || 0}</td>
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-green-600">{post.like_count || 0}</td>
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-red-600">{post.dislike_count || 0}</td>
+                    <td className="px-6 py-3 whitespace-nowrap text-xs text-gray-500">{post.author}</td>
+                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-gray-500">{post.view_count || 0}</td>
+                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-green-600">{post.like_count || 0}</td>
+                    <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-red-600">{post.dislike_count || 0}</td>
                   </tr>
                 ))}
               </tbody>

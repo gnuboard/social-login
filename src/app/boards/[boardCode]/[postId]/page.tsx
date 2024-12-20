@@ -6,6 +6,7 @@ import { Post, Comment } from '@/types';
 import { useSession } from 'next-auth/react';
 import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
 
 async function getPostDetail(boardCode: string, postId: string) {
   const response = await fetch(`/api/boards/${boardCode}/${postId}`, {
@@ -166,16 +167,32 @@ const Comment = ({ comment, onReply, boardCode, postId, setCommentsCount }: Comm
   return (
     <div className="mb-4">
       <div className="bg-gray-50 p-4 rounded">
-        <div className="flex justify-between">
-          <span className="font-bold">{comment.author}</span>
-          <span className="text-gray-500">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium flex items-center gap-2">
+            <Image
+              src="/icons/user.svg"
+              alt="작성자"
+              width={14}
+              height={14}
+              className="text-gray-500"
+            />
+            {comment.author}
+          </span>
+          <span className="text-xs text-gray-500 flex items-center gap-2">
+            <Image
+              src="/icons/calendar.svg"
+              alt="작성일"
+              width={14}
+              height={14}
+              className="text-gray-500"
+            />
             {new Date(comment.created_at).toLocaleDateString()}
           </span>
         </div>
-        {renderCommentContent(comment)}
+        <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
         <button 
           onClick={() => setReplyToId(replyToId === comment.id ? null : comment.id)}
-          className="text-blue-500 text-sm mt-2"
+          className="text-xs text-blue-500 mt-2 hover:text-blue-600"
         >
           답글 달기
         </button>
@@ -402,18 +419,36 @@ export default function PostDetailPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold mb-4">{post.title}</h1>
-        <div className="flex items-center text-gray-600 mb-4">
-          <span className="mr-4">작성자: {post.author}</span>
-          <span>작성일: {new Date(post.created_at).toISOString().split('T')[0]}</span>
+        <h1 className="text-lg font-medium mb-3">{post.title}</h1>
+        <div className="flex items-center gap-4 text-xs text-gray-600 mb-4">
+          <span className="flex items-center gap-2">
+            <Image
+              src="/icons/user.svg"
+              alt="작성자"
+              width={16}
+              height={16}
+              className="text-gray-500"
+            />
+            {post.author}
+          </span>
+          <span className="flex items-center gap-2">
+            <Image
+              src="/icons/calendar.svg"
+              alt="작성일"
+              width={16}
+              height={16}
+              className="text-gray-500"
+            />
+            {new Date(post.created_at).toISOString().split('T')[0]}
+          </span>
         </div>
-        <div className="whitespace-pre-wrap">
+        <div className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap min-h-[200px]">
           {post.content}
         </div>
         <div className="mt-6 flex items-center justify-center gap-8 border-t border-b py-4">
           <button
             onClick={() => handleVoteClick(true)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
               userVote === true
                 ? 'bg-green-100 text-green-600'
                 : 'bg-gray-50 hover:bg-gray-100'
@@ -425,7 +460,7 @@ export default function PostDetailPage() {
           
           <button
             onClick={() => handleVoteClick(false)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
               userVote === false
                 ? 'bg-red-100 text-red-600'
                 : 'bg-gray-50 hover:bg-gray-100'
@@ -437,13 +472,13 @@ export default function PostDetailPage() {
         </div>
 
         <div className="mt-8">
-          <h3 className="text-xl font-semibold mb-4">
-            댓글 <span className="text-gray-500">({commentsCount})</span>
+          <h3 className="text-base font-medium mb-4">
+            댓글 <span className="text-gray-500 text-xs">({commentsCount})</span>
           </h3>
           
           <div className="mb-6">
             <textarea
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={3}
               placeholder={session ? "댓글을 작성해주세요..." : "로그인 후 댓글을 작성할 수 있습니다."}
               value={newComment}
@@ -452,7 +487,7 @@ export default function PostDetailPage() {
             />
             <div className="flex justify-end mt-2">
               <button 
-                className={`px-4 py-2 bg-blue-500 text-white rounded-md transition-colors
+                className={`px-3 py-1.5 text-sm bg-blue-500 text-white rounded-md transition-colors
                   ${(!session || isCommentLoading) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
                 onClick={() => handleCommentSubmit(newComment)}
                 disabled={!session || isCommentLoading}
@@ -483,14 +518,14 @@ export default function PostDetailPage() {
           <div className="flex items-center gap-2">
             <Link 
               href={`/boards/${boardCode}/write`}
-              className="px-4 py-2 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+              className="px-3 py-1.5 text-sm rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
             >
               글쓰기
             </Link>
             
             <Link 
               href={`/boards/${boardCode}/write?parent_id=${postId}`}
-              className="px-4 py-2 rounded-md bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+              className="px-3 py-1.5 text-sm rounded-md bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
             >
               답글
             </Link>
@@ -502,7 +537,7 @@ export default function PostDetailPage() {
               <>
                 <Link 
                   href={`/boards/${boardCode}/${postId}/edit`}
-                  className="px-4 py-2 rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                  className="px-3 py-1.5 text-sm rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
                 >
                   수정
                 </Link>
@@ -525,7 +560,7 @@ export default function PostDetailPage() {
                       }
                     }
                   }}
-                  className="px-4 py-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                  className="px-3 py-1.5 text-sm rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                 >
                   삭제
                 </button>
@@ -535,7 +570,7 @@ export default function PostDetailPage() {
 
           <Link 
             href={`/boards/${boardCode}`}
-            className="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            className="px-3 py-1.5 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
           >
             목록
           </Link>

@@ -134,13 +134,13 @@ export default function EditPostPage({ params }: Props) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold mb-6">게시글 수정</h1>
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="bg-white rounded-lg shadow-sm p-5">
+        <h1 className="text-xl font-medium mb-5">게시글 수정</h1>
         
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="title">
+            <label className="block text-gray-600 text-xs font-medium mb-1" htmlFor="title">
               제목
             </label>
             <input
@@ -149,16 +149,14 @@ export default function EditPostPage({ params }: Props) {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight 
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                hover:border-gray-400 transition-colors"
+              className="shadow-sm appearance-none border border-gray-200 rounded w-full py-1.5 px-2.5 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
               required
               autoFocus
             />
           </div>
 
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="content">
+          <div className="mb-5">
+            <label className="block text-gray-600 text-xs font-medium mb-1" htmlFor="content">
               내용
             </label>
             <textarea
@@ -166,14 +164,12 @@ export default function EditPostPage({ params }: Props) {
               name="content"
               value={formData.content}
               onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight 
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                hover:border-gray-400 transition-colors min-h-[12rem] resize-y whitespace-pre-wrap"
+              className="shadow-sm appearance-none border border-gray-200 rounded w-full py-1.5 px-2.5 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 h-48"
               required
             />
           </div>
 
-          <div className="flex items-center gap-4 justify-end">
+          <div className="flex items-center gap-3 justify-end">
             <button
               type="button"
               onClick={() => {
@@ -181,18 +177,14 @@ export default function EditPostPage({ params }: Props) {
                   router.push(`/boards/${boardCode}/${postId}`);
                 }
               }}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded
-                focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2
-                transition-colors disabled:opacity-50"
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-1.5 px-3.5 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 transition-colors disabled:opacity-50"
               disabled={submitLoading}
             >
               취소
             </button>
             <button
               type="submit"
-              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded
-                focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
-                transition-colors disabled:opacity-50"
+              className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium py-1.5 px-3.5 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors disabled:bg-blue-300"
               disabled={submitLoading}
             >
               {submitLoading ? '수정 중...' : '수정하기'}

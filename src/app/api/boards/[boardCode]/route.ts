@@ -43,12 +43,6 @@ export async function GET(
         p.view_count,
         p.depth,
         CONCAT(
-          REPEAT('　', p.depth),
-          CASE 
-            WHEN p.depth > 0 THEN CONCAT('↳ ')
-            ELSE ''
-          END,
-          p.title,
           ' (',
           p.id,
           ', ',
@@ -73,7 +67,14 @@ export async function GET(
       [boardId, limit, offset]
     );
 
-    return NextResponse.json(posts);
+    return NextResponse.json({
+      board: {
+        id: board.id,
+        code: board.code,
+        title: board.title,
+      },
+      posts: posts
+    });
     
   } catch (error) {
     console.error('상세 에러 정보:', error);
@@ -151,18 +152,38 @@ export async function POST(
       if (Array.isArray(parentPost) && parentPost.length > 0) {
         groupId = parentPost[0].group_id;
         parentDepth = parentPost[0].depth;
-        const parentSequence = parentPost[0].sequence;
 
-        // 새 글의 sequence는 부모 sequence + 1
-        newSequence = parentSequence + 1;
+        // 부모 글의 다음 sequence부터 같은 depth의 글이 있는지 찾습니다
+        const [nextSameDepthPost] = await connection.query(
+          `SELECT sequence 
+           FROM posts 
+           WHERE group_id = ? 
+           AND sequence > ? 
+           AND depth <= ?
+           ORDER BY sequence ASC 
+           LIMIT 1`,
+          [groupId, parentPost[0].sequence, parentPost[0].depth]
+        );
+        
+        if (nextSameDepthPost && nextSameDepthPost.length > 0) {
+          // 다음 같은 depth 글이 있으면 그 바로 앞에 위치
+          newSequence = nextSameDepthPost[0].sequence;
+        } else {
+          // 없으면 현재 그룹의 마지막 sequence + 1
+          const [lastPost] = await connection.query(
+            'SELECT sequence FROM posts WHERE group_id = ? ORDER BY sequence DESC LIMIT 1',
+            [groupId]
+          );
+          newSequence = lastPost[0].sequence + 1;
+        }
 
-        // 부모 sequence보다 큰 모든 글의 sequence를 1 증가
+        // 새 sequence 이상의 값을 가진 글들의 sequence를 1씩 증가
         await connection.query(
           `UPDATE posts 
            SET sequence = sequence + 1 
            WHERE group_id = ? 
-           AND sequence > ?`,
-          [groupId, parentSequence]
+           AND sequence >= ?`,
+          [groupId, newSequence]
         );
       }
     }
