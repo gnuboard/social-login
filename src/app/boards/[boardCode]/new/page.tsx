@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 
-export default function WritePostPage() {
+export default function NewPostPage() {
   const router = useRouter();
   const params = useParams();
   const boardCode = params.boardCode as string;

@@ -1,6 +1,13 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaHandshake, FaUsers, FaLaptopCode } from 'react-icons/fa';
+import { Metadata } from 'next';
+
+// Metadata 설정
+export const metadata: Metadata = {
+  title: 'DevWant - About',
+  description: '개발자 의뢰 및 구인 게시판 소개',
+};
 
 export default function AboutPage() {
   return (
@@ -12,19 +19,19 @@ export default function AboutPage() {
             DevWant
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            개발자를 위한 신뢰할 수 있는 의뢰와 구인 플랫폼
+            개발자 의뢰 및 구인 게시판
           </p>
         </div>
 
-        {/* 특징 섹션 */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
+        {/* 주요 기능 섹션 */}
+        <div className="grid md:grid-cols-2 gap-8 mb-16">
           <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
               <FaHandshake className="text-blue-600 text-xl" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">프로젝트 매칭</h3>
+            <h3 className="text-lg font-semibold mb-2">의뢰 게시판</h3>
             <p className="text-gray-600">
-              검증된 클라이언트와 개발자를 연결하여 신뢰할 수 있는 프로젝트 매칭을 제공합니다.
+              프로젝트 의뢰 글을 작성하고 개발자를 찾을 수 있습니다.
             </p>
           </div>
 
@@ -32,70 +39,41 @@ export default function AboutPage() {
             <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">
               <FaUsers className="text-purple-600 text-xl" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">인재 채용</h3>
+            <h3 className="text-lg font-semibold mb-2">구인 게시판</h3>
             <p className="text-gray-600">
-              실력있는 개발자와 좋은 기업을 연결하는 최적의 채용 플랫폼입니다.
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <FaLaptopCode className="text-green-600 text-xl" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">기술 중심</h3>
-            <p className="text-gray-600">
-              다양한 기술 스택과 전문성을 바탕으로 최적의 매칭을 제공합니다.
+              개발자 채용 공고를 작성하고 인재를 찾을 수 있습니다.
             </p>
           </div>
         </div>
 
-        {/* 장점 섹션 */}
-        <div className="bg-white rounded-2xl shadow-md p-8 mb-16">
-          <h2 className="text-2xl font-bold mb-6 text-center">DevWant의 특별함</h2>
-          <div className="space-y-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                <span className="text-blue-600 font-semibold">1</span>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">검증된 프로젝트</h3>
-                <p className="text-gray-600">모든 프로젝트는 검토 과정을 거쳐 신뢰할 수 있는 프로젝트만 등록됩니다.</p>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                <span className="text-blue-600 font-semibold">2</span>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">실력 있는 개발자</h3>
-                <p className="text-gray-600">포트폴리오와 경력을 검증하여 실력 있는 개발자들이 활동합니다.</p>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                <span className="text-blue-600 font-semibold">3</span>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">안전한 계약과 정산</h3>
-                <p className="text-gray-600">표준 계약서와 에스크로 시스템으로 안전한 거래를 보장합니다.</p>
-              </div>
-            </div>
-          </div>
+        {/* 회원가입 섹션 */}
+        <div className="bg-white rounded-2xl shadow-md p-8 mb-16 text-center">
+          <h2 className="text-2xl font-bold mb-4">소셜 로그인으로 간편 가입</h2>
+          <p className="text-gray-600 mb-6">
+            DevWant는 소셜 로그인을 통해 간편하게 서비스를 이용할 수 있습니다.<br/>
+            아래 버튼을 클릭하여 로그인 페이지로 이동해주세요.
+          </p>
+          <Link 
+            href="/login" 
+            className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+          >
+            로그인 페이지로 이동
+          </Link>
         </div>
 
         {/* CTA 섹션 */}
         <div className="text-center">
           <Link 
-            href="/projects" 
+            href="/boards/requests" 
             className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-colors mr-4"
           >
-            프로젝트 둘러보기
+            의뢰 게시판
           </Link>
           <Link 
-            href="/signup" 
+            href="/boards/jobs" 
             className="inline-flex items-center justify-center px-8 py-3 border border-blue-600 text-base font-medium rounded-full text-blue-600 hover:bg-blue-50 transition-colors"
           >
-            회원가입하기
+            구인 게시판
           </Link>
         </div>
       </div>

@@ -8,11 +8,65 @@ import NaverIcon from '@/components/icons/NaverIcon';
 import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import { useNaverAuth } from '@/hooks/useNaverAuth';
 import { useKakaoAuth } from '@/hooks/useKakaoAuth';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 const LoginPage: NextPage = () => {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const { handleGoogleSignIn } = useGoogleAuth();
   const { handleNaverSignIn } = useNaverAuth();
   const { handleKakaoSignIn } = useKakaoAuth();
+
+  if (status === 'loading') {
+    return null;
+  }
+
+  if (status === 'authenticated') {
+    return (
+      <div className="flex items-start justify-center pt-20 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+        <div className="max-w-md w-full mx-4 p-8 bg-white rounded-2xl shadow-lg text-center">
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg 
+                className="w-8 h-8 text-yellow-600" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              이미 로그인되어 있습니다
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {session.user?.email} 계정으로 로그인된 상태입니다.
+            </p>
+            <div className="space-y-4">
+              <Link 
+                href="/"
+                className="block w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                홈으로 돌아가기
+              </Link>
+              <button 
+                onClick={() => router.back()}
+                className="block w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                이전 페이지로
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-start justify-center pt-20 bg-[#fafafa] dark:bg-gray-900 min-h-screen">

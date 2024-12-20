@@ -47,7 +47,7 @@ export default async function BoardPage({ params }: Props) {
             {title}
           </h1>
           <Link 
-            href={`/boards/${resolvedParams.boardCode}/write`}
+            href={`/boards/${resolvedParams.boardCode}/new`}
             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors duration-200 text-sm"
           >
             글쓰기

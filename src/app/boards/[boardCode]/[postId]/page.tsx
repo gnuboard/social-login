@@ -559,14 +559,14 @@ export default function PostDetailPage() {
         <div className="flex justify-between items-center mt-8 pt-6 border-t">
           <div className="flex items-center gap-2">
             <Link 
-              href={`/boards/${boardCode}/write`}
+              href={`/boards/${boardCode}/new`}
               className="px-3 py-1.5 text-sm rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
             >
               글쓰기
             </Link>
             
             <Link 
-              href={`/boards/${boardCode}/write?parent_id=${postId}`}
+              href={`/boards/${boardCode}/new?parent_id=${postId}`}
               className="px-3 py-1.5 text-sm rounded-md bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
             >
               답글

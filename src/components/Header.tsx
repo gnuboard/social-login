@@ -3,14 +3,21 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
+import { useState } from 'react';
+import { Menu, ChevronDown } from 'lucide-react';
 
 const Header = () => {
   const { data: session, status } = useSession();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const isAdmin = session?.user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
   const handleLogout = () => {
-    signOut({ callbackUrl: '/' });
+    signOut({ 
+      callbackUrl: '/',
+      redirect: true
+    });
   };
 
   return (
@@ -34,10 +41,22 @@ const Header = () => {
             
             <nav className="hidden md:flex space-x-6">
               <Link 
+                href="/boards/requests" 
+                className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                의뢰
+              </Link>
+              <Link 
+                href="/boards/jobs" 
+                className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                구인
+              </Link>
+              <Link 
                 href="/about" 
                 className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
               >
-                소개
+                About
               </Link>
               {isAdmin && (
                 <Link 
@@ -50,23 +69,49 @@ const Header = () => {
             </nav>
           </div>
 
-          <nav className="flex items-center space-x-4">
+          <button
+            className="md:hidden p-2"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+
+          <nav className="hidden md:flex items-center space-x-4">
             {status === 'loading' ? (
               <div className="animate-pulse">
                 <div className="h-8 w-20 bg-gray-200 rounded"></div>
               </div>
             ) : session ? (
-              <>
-                <span className="text-sm text-gray-600">
-                  {session.user?.name || '사용자'} ({session.user?.email})
-                </span>
+              <div className="relative">
                 <button 
-                  onClick={handleLogout}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
                 >
-                  로그아웃
+                  <span>{session.user?.name || '사용자'}</span>
+                  <ChevronDown className="h-4 w-4" />
                 </button>
-              </>
+                
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-100">
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      프로필
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsProfileOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      로그아웃
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <Link 
@@ -85,6 +130,47 @@ const Header = () => {
             )}
           </nav>
         </div>
+
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-100 bg-white/80 backdrop-blur-md absolute left-0 right-0">
+            <div className="flex flex-col space-y-3 px-4 text-right">
+              <Link 
+                href="/boards/requests" 
+                className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                의뢰
+              </Link>
+              <Link 
+                href="/boards/jobs" 
+                className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                구인
+              </Link>
+              <Link 
+                href="/about" 
+                className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                About
+              </Link>
+              {isAdmin && (
+                <Link 
+                  href="/admin/dashboard" 
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  관리자
+                </Link>
+              )}
+              {session && (
+                <button 
+                  onClick={handleLogout}
+                  className="w-full text-right text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                >
+                  로그아웃
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );
