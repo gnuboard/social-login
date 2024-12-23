@@ -274,6 +274,11 @@ const Comment = ({ comment, onReply, boardCode, postId, setCommentsCount }: Comm
   );
 };
 
+// HTML 컨텐츠를 안전하게 표시하기 위한 함수 추가
+const createMarkup = (content: string) => {
+  return { __html: content };
+};
+
 export default function PostDetailPage() {
   const params = useParams();
   const boardCode = params.boardCode as string;
@@ -484,9 +489,10 @@ export default function PostDetailPage() {
             조회 {post.view_count || 0}
           </span>
         </div>
-        <div className="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap min-h-[200px]">
-          {post.content}
-        </div>
+        <div 
+          className="text-xs leading-relaxed text-gray-700 min-h-[200px]"
+          dangerouslySetInnerHTML={createMarkup(post.content)}
+        />
         <div className="mt-6 flex items-center justify-center gap-8 border-t border-b py-4">
           <button
             onClick={() => handleVoteClick(true)}

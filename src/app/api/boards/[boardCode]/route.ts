@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import path from 'path';
+import fs from 'fs';
+import sharp from 'sharp';
 
 export async function GET(
   request: Request,
@@ -41,6 +44,7 @@ export async function GET(
         p.created_at,
         p.view_count,
         p.depth,
+        p.thumbnail,
         CONCAT(
           ' (',
           p.id,
@@ -72,7 +76,10 @@ export async function GET(
         code: board.code,
         title: board.title,
       },
-      posts: posts
+      posts: posts.map(post => ({
+        ...post,
+        thumbnail: post.thumbnail || null
+      }))
     });
     
   } catch (error) {
@@ -84,30 +91,85 @@ export async function GET(
   }
 }
 
+async function resizeImage(buffer: Buffer): Promise<Buffer> {
+  return await sharp(buffer)
+    .resize({
+      width: 200,
+      height: 200,
+      fit: 'cover',
+      position: 'left top'
+    })
+    .jpeg({ quality: 100 })
+    .toBuffer();
+}
+
 export async function POST(
   request: Request,
   { params }: { params: { boardCode: string } }
 ) {
-  const connection = await pool.getConnection();
   const session = await getServerSession(authOptions);
   
   if (!session) {
-    connection.release();
+    console.log('인증 실패: 세션 없음');
     return NextResponse.json(
-      { error: '로그인이 필요합니다.' },
+      { 
+        error: '로그인이 필요합니다.',
+        showAlert: true  // 경고창 표시를 위한 플래그 추가
+      },
       { status: 401 }
     );
   }
 
+  // 인증된 사용자만 DB 연결 수행
+  const connection = await pool.getConnection();
+  
+  console.log('=== POST 요청 시작 ===');
+  
   try {
     const { boardCode } = await params;
-    const { title, content, parent_id, group_id, sequence, depth } = await request.json();
+    const { title, content, parent_id } = await request.json();
 
-    // 요청 데이터 로그 추가
-    console.log('=== 게시글 작성 요청 데이터 ===');
-    console.log('parent_id:', parent_id);
-    console.log('title:', title);
-    console.log('content:', content);
+    // 컨텐츠 저장 직전 썸네일 처리 추가
+    let thumbnail = null;
+    const base64Regex = /<img[^>]*src="(data:image\/[^"]+)"[^>]*>/;
+    const match = content.match(base64Regex);
+    
+    if (match && match[1]) {
+      const base64Data = match[1].replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      // 연도를 2자리로 변경
+      const now = new Date();
+      const year = String(now.getFullYear()).slice(-2); // 4자리 연도에서 마지막 2자리만 사용
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const yearMonthPath = `${year}${month}`;
+      
+      // 업로드 기본 경로와 연/월 폴더 경로 생성
+      const baseUploadDir = path.join(process.cwd(), 'public/thumbs');
+      const uploadDir = path.join(baseUploadDir, yearMonthPath);
+      
+      // 폴더가 없으면 생성 (상위 폴더 포함)
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      // 리사이징된 이미지 저장
+      const resizedBuffer = await resizeImage(buffer);
+      const fileName = `thumb_${Date.now()}.png`;
+      const filePath = path.join(uploadDir, fileName);
+      
+      fs.writeFileSync(filePath, resizedBuffer);
+      thumbnail = `/thumbs/${yearMonthPath}/${fileName}`; // DB에 저장될 상대 경로
+    }
+
+    console.log({
+      요청정보: {
+        boardCode,
+        title,
+        parent_id,
+        user: session.user?.email
+      }
+    });
 
     // 사용자 정보 조회 (이름 포함)
     const [userResult] = await connection.query(
@@ -137,7 +199,7 @@ export async function POST(
     // 트랜잭션 시작
     await connection.beginTransaction();
 
-    // 답글인 경우 부모글의 정보 조회
+    // 답글인 경우 부모글의 정보 회
     let groupId = null;
     let parentDepth = 0;
     let newSequence = 0;
@@ -196,12 +258,12 @@ export async function POST(
     // 게시글 저장
     const [result] = await connection.query(
       `INSERT INTO posts (
-        board_id, title, content,
+        board_id, title, content, thumbnail,
         group_id, sequence, depth, 
         user_id, author, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        boardId, title, content,
+        boardId, title, content, thumbnail,
         groupId, 
         parent_id ? newSequence : 0,
         parent_id ? parentDepth + 1 : 0,
@@ -219,12 +281,20 @@ export async function POST(
 
     await connection.commit();
     
-    return NextResponse.json({ id: result.insertId });
+    console.log('게시글 저장 성공:', result.insertId);
+    return NextResponse.json({ 
+      id: result.insertId,
+      boardCode: boardCode // 게시판 코드도 함께 반환
+    });
   } catch (error) {
     await connection.rollback();
-    console.error('Error creating post:', error);
+    console.error('게시글 저장 실패:', {
+      message: error.message,
+      stack: error.stack
+    });
+    
     return NextResponse.json(
-      { error: 'Failed to create post' },
+      { error: '게시글 작성에 실패했습니다.' },
       { status: 500 }
     );
   } finally {

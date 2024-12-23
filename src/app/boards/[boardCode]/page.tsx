@@ -1,5 +1,9 @@
 import { Post } from '@/types';
 import Link from 'next/link';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import Image from 'next/image';
+import ThumbnailImage from '@/app/components/ThumbnailImage';
 
 interface Props {
   params: Promise<{
@@ -7,7 +11,7 @@ interface Props {
   }>
 }
 
-async function getPosts(boardCode: string) {
+async function getPosts(boardCode: string, session: any) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   const apiUrl = `${baseUrl}/api/boards/${boardCode}`;
   
@@ -15,7 +19,10 @@ async function getPosts(boardCode: string) {
   console.log('Full Request URL:', apiUrl);
   
   const response = await fetch(apiUrl, {
-    cache: 'no-store'
+    cache: 'no-store',
+    headers: {
+      'Authorization': session ? `Bearer ${session.user.accessToken}` : ''
+    }
   });
   
   if (!response.ok) {
@@ -36,9 +43,11 @@ async function getPosts(boardCode: string) {
 }
 
 export default async function BoardPage({ params }: Props) {
+  const session = await getServerSession(authOptions);
+
   try {
     const resolvedParams = await params;
-    const { title, posts } = await getPosts(resolvedParams.boardCode);
+    const { title, posts } = await getPosts(resolvedParams.boardCode, session);
     
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -46,12 +55,14 @@ export default async function BoardPage({ params }: Props) {
           <h1 className="text-2xl font-bold text-gray-800">
             {title}
           </h1>
-          <Link 
-            href={`/boards/${resolvedParams.boardCode}/new`}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors duration-200 text-sm"
-          >
-            글쓰기
-          </Link>
+          {session && (
+            <Link 
+              href={`/boards/${resolvedParams.boardCode}/new`}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors duration-200 text-sm"
+            >
+              글쓰기
+            </Link>
+          )}
         </div>
         
         {posts && posts.length > 0 ? (
@@ -75,15 +86,19 @@ export default async function BoardPage({ params }: Props) {
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap">
                       <Link href={`/boards/${resolvedParams.boardCode}/${post.id}`}>
-                        <span className="text-sm font-normal text-gray-900 hover:text-blue-600">
-                          {post.depth > 0 && (
-                            <span className="inline-block text-gray-400" style={{ marginLeft: `${post.depth * 15}px` }}>
-                              └&nbsp;
-                            </span>
+                        <div className="flex items-center gap-3">
+                          {post.thumbnail && (
+                            <ThumbnailImage src={post.thumbnail} />
                           )}
-                          {post.title}
-                          {/* <span className="text-gray-400 text-xs">{post.display_title}</span> */}
-                        </span>
+                          <span className="text-sm font-normal text-gray-900 hover:text-blue-600">
+                            {post.depth > 0 && (
+                              <span className="inline-block text-gray-400" style={{ marginLeft: `${post.depth * 15}px` }}>
+                                └&nbsp;
+                              </span>
+                            )}
+                            {post.title}
+                          </span>
+                        </div>
                       </Link>
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap text-xs text-gray-500 text-center">{post.author}</td>

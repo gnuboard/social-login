@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import Editor from '@/components/Editor';
 
 export default function NewPostPage() {
   const router = useRouter();
@@ -66,14 +67,42 @@ export default function NewPostPage() {
       });
 
       if (!response.ok) {
-        throw new Error('게시글 작성에 실패했습니다.');
+        const errorData = await response.json();
+        console.log('서버 응답:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        
+        if (response.status === 401) {
+          alert(errorData.error);
+          router.push('/login');  // 로그인 페이지로 리다이렉트
+          return;
+        }
+        throw new Error(errorData.error || '게시글 작성에 실패했습니다.');
       }
 
-      router.push(`/boards/${boardCode}`);
+      const data = await response.json();
+      router.push(`/boards/${data.boardCode}/${data.id}`);
     } catch (error) {
-      alert('게시글 작성 중 오류가 발생했습니다.');
+      console.error('게시글 작성 오류:', error);
+      alert(error instanceof Error ? error.message : '게시글 작성 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Quill 에디터 설정 추가
+  const modules = {
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        ['blockquote'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['link', 'image'],
+        ['clean']
+      ]
     }
   };
 
@@ -101,14 +130,7 @@ export default function NewPostPage() {
             <label className="block text-gray-600 text-xs font-medium mb-1" htmlFor="content">
               내용
             </label>
-            <textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={5}
-              className="shadow-sm appearance-none border border-gray-200 rounded w-full py-1.5 px-2.5 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 h-48"
-              required
-            />
+            <Editor value={content} onChange={setContent} />
           </div>
 
           <div className="flex items-center gap-3 justify-end">

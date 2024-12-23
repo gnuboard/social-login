@@ -28,3 +28,20 @@
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 800px; /* 테이블의 최소 너비 설정 */
+}
+
+td {
+  max-width: 200px; /* 원하는 최대 너비 설정 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
