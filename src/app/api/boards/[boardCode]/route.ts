@@ -3,9 +3,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import path from 'path';
-import fs from 'fs';
-import sharp from 'sharp';
+import { createThumbnail } from '@/lib/thumbnailUtils';
 
 export async function GET(
   request: Request,
@@ -70,6 +68,12 @@ export async function GET(
       [boardId, limit, offset]
     );
 
+    // 총 게시글 수 조회 쿼리 추가
+    const [totalResult] = await pool.query(
+      'SELECT COUNT(*) as total FROM posts WHERE board_id = ?',
+      [boardId]
+    );
+
     return NextResponse.json({
       board: {
         id: board.id,
@@ -79,7 +83,8 @@ export async function GET(
       posts: posts.map(post => ({
         ...post,
         thumbnail: post.thumbnail || null
-      }))
+      })),
+      total: totalResult[0].total  // 총 게시글 수 추가
     });
     
   } catch (error) {
@@ -89,18 +94,6 @@ export async function GET(
       { status: 500 }
     );
   }
-}
-
-async function resizeImage(buffer: Buffer): Promise<Buffer> {
-  return await sharp(buffer)
-    .resize({
-      width: 200,
-      height: 200,
-      fit: 'cover',
-      position: 'left top'
-    })
-    .jpeg({ quality: 100 })
-    .toBuffer();
 }
 
 export async function POST(
@@ -129,38 +122,8 @@ export async function POST(
     const { boardCode } = await params;
     const { title, content, parent_id } = await request.json();
 
-    // 컨텐츠 저장 직전 썸네일 처리 추가
-    let thumbnail = null;
-    const base64Regex = /<img[^>]*src="(data:image\/[^"]+)"[^>]*>/;
-    const match = content.match(base64Regex);
-    
-    if (match && match[1]) {
-      const base64Data = match[1].replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
-      
-      // 연도를 2자리로 변경
-      const now = new Date();
-      const year = String(now.getFullYear()).slice(-2); // 4자리 연도에서 마지막 2자리만 사용
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const yearMonthPath = `${year}${month}`;
-      
-      // 업로드 기본 경로와 연/월 폴더 경로 생성
-      const baseUploadDir = path.join(process.cwd(), 'public/thumbs');
-      const uploadDir = path.join(baseUploadDir, yearMonthPath);
-      
-      // 폴더가 없으면 생성 (상위 폴더 포함)
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      
-      // 리사이징된 이미지 저장
-      const resizedBuffer = await resizeImage(buffer);
-      const fileName = `thumb_${Date.now()}.png`;
-      const filePath = path.join(uploadDir, fileName);
-      
-      fs.writeFileSync(filePath, resizedBuffer);
-      thumbnail = `/thumbs/${yearMonthPath}/${fileName}`; // DB에 저장될 상대 경로
-    }
+    // 컨네일 처리를 함수 호출로 단순화
+    const thumbnail = await createThumbnail(content);
 
     console.log({
       요청정보: {
@@ -299,5 +262,43 @@ export async function POST(
     );
   } finally {
     connection.release();
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { boardCode: string } }
+) {
+  try {
+    const { boardCode } = params;
+    const { id, title, content } = await request.json();
+
+    // 썸네일 처리 추가
+    const thumbnail = await createThumbnail(content);
+
+    const [result] = await pool.query(
+      `UPDATE posts 
+       SET title = ?, 
+           content = ?, 
+           thumbnail = ?,
+           updated_at = NOW() 
+       WHERE id = ?`,
+      [title, content, thumbnail, id]
+    );
+
+    return NextResponse.json({
+      id: id,
+      boardCode: boardCode
+    });
+  } catch (error) {
+    console.error('게시글 수정 실패:', {
+      message: error.message,
+      stack: error.stack
+    });
+    
+    return NextResponse.json(
+      { error: '게시글 수정에 실패했습니다.' },
+      { status: 500 }
+    );
   }
 }

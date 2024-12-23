@@ -3,6 +3,7 @@ import pool from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/auth";
 import { RowDataPacket } from 'mysql2';
+import { createThumbnail, deleteThumbnail } from '@/lib/thumbnailUtils';
 
 interface UserResult extends RowDataPacket {
   id: number;
@@ -145,7 +146,7 @@ export async function PUT(
     );
 
     if (!userResult || userResult.length === 0) {
-      return new Response(JSON.stringify({ error: '사용자를 찾을 수 없습니다.' }), {
+      return new Response(JSON.stringify({ error: '사용자를 ���을 수 없습니다.' }), {
         status: 404,
       });
     }
@@ -180,19 +181,31 @@ export async function PUT(
       });
     }
 
-    const body = await request.json();
+    // 기존 썸네일 삭제
+    const [existingPost] = await connection.execute(
+      'SELECT thumbnail FROM posts WHERE id = ?',
+      [postId]
+    );
+    
+    if (Array.isArray(existingPost) && existingPost.length > 0) {
+      await deleteThumbnail(existingPost[0].thumbnail);
+    }
 
-    // 게시글 업데이트
+    const body = await request.json();
+    const thumbnail = await createThumbnail(body.content);
+
+    // 게시글 업데이트 쿼리
     await connection.execute(`
       UPDATE posts 
       SET 
         title = ?,
         content = ?,
+        thumbnail = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [body.title, body.content, postId]);
+    `, [body.title, body.content, thumbnail, postId]);
 
-    return new Response(JSON.stringify({ message: '게시글��� 수정되었습니다.' }), { 
+    return new Response(JSON.stringify({ message: '게시글이 성공적으로 수정되었습니다.' }), { 
       status: 200 
     });
     
@@ -240,7 +253,7 @@ export async function DELETE(
       );
     }
 
-    // 작성자 권한 확인
+    // 작자 권한 확인
     if (posts[0].user_email !== session.user.email) {
       return NextResponse.json(
         { error: '게시글을 삭제할 권한이 없습니다.' },
