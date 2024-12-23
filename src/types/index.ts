@@ -19,6 +19,7 @@ export interface Board {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  posts_count: number;
 }
 
 export interface BoardFormData {
@@ -62,4 +63,13 @@ export interface Comment {
   created_at: string;
   parent_id: number | null;
   replies: Comment[];
+}
+
+export interface Category {
+  id: number;
+  board_id: number;
+  name: string;
+  description: string | null;
+  order_num: number;
+  created_at: string;
 }

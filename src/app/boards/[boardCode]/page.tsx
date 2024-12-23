@@ -41,9 +41,9 @@ async function getPosts(boardCode: string, session: any, page: number = 1) {
   return {
     title: data.board.title || boardCode,
     posts: data.posts,
-    totalPages: Math.ceil(data.total / postsPerPage),
+    totalPages: Math.ceil(data.board.posts_count / postsPerPage),
     currentPage: page,
-    total: data.total
+    total: data.board.posts_count
   };
 }
 

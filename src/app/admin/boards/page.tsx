@@ -5,8 +5,14 @@ import AdminLayout from '@/components/layout/AdminLayout';
 import Link from 'next/link';
 import { Board, BoardFormData } from '@/types';
 
+interface Category {
+  id: number;
+  name: string;
+}
+
 export default function BoardsPage() {
   const [boards, setBoards] = useState<Board[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<BoardFormData>({
@@ -16,9 +22,17 @@ export default function BoardsPage() {
     category: ''
   });
   const [editBoardId, setEditBoardId] = useState<number | null>(null);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: '',
+    description: '',
+    order_num: 0
+  });
+  const [editCategoryId, setEditCategoryId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchBoards();
+    fetchCategories();
   }, []);
 
   const fetchBoards = async () => {
@@ -30,6 +44,18 @@ export default function BoardsPage() {
       console.error('게시판 목록 조회 실패:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/admin/categories');
+      if (!response.ok) throw new Error('카테고리 조회 실패');
+      const data = await response.json();
+      setCategories(data.categories);
+    } catch (error) {
+      console.error('카테고리 조회 중 오류:', error);
+      alert('카테고리 목록을 불러오는데 실패했습니다.');
     }
   };
 
@@ -124,6 +150,52 @@ export default function BoardsPage() {
     } catch (error) {
       console.error('게시판 복구 중 오류:', error);
       alert('게시판 복구에 실패했습니다.');
+    }
+  };
+
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const method = editCategoryId ? 'PUT' : 'POST';
+      const url = editCategoryId 
+        ? `/api/admin/categories/${editCategoryId}` 
+        : '/api/admin/categories';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(categoryFormData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || '카테고리 저장 실패');
+      }
+
+      setCategoryModalOpen(false);
+      setCategoryFormData({ name: '', description: '', order_num: 0 });
+      setEditCategoryId(null);
+      fetchCategories();
+    } catch (error) {
+      console.error('카테고리 저장 중 오류:', error);
+      alert(error instanceof Error ? error.message : '카테고리 저장에 실패했습니다.');
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (!confirm('이 카테고리를 삭제하시겠습니까?')) return;
+
+    try {
+      const response = await fetch(`/api/admin/categories/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('카테고리 삭제 실패');
+      fetchCategories();
+    } catch (error) {
+      console.error('카테고리 삭제 중 오류:', error);
+      alert('카테고리 삭제에 실패했습니다.');
     }
   };
 
@@ -299,13 +371,20 @@ export default function BoardsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">카테고리</label>
-                    <input
-                      type="text"
+                    <select
                       name="category"
                       value={formData.category}
                       onChange={handleChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
+                      required
+                    >
+                      <option value="">카테고리 선택</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end space-x-3">
@@ -331,7 +410,117 @@ export default function BoardsPage() {
             </div>
           </div>
         )}
+
+        {/* 카테고리 관리 섹션 */}
+        <div className="mt-8 p-6 border-t border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">카테고리 관리</h3>
+            <button 
+              onClick={() => setCategoryModalOpen(true)}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              카테고리 추가
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-4 gap-4">
+            {categories.map((category) => (
+              <div key={category.id} className="flex flex-col p-4 bg-gray-50 rounded">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium">{category.name}</span>
+                  <div>
+                    <button
+                      onClick={() => {
+                        setEditCategoryId(category.id);
+                        setCategoryFormData({
+                          name: category.name,
+                          description: category.description || '',
+                          order_num: category.order_num
+                        });
+                        setCategoryModalOpen(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-900 mr-2"
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(category.id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+                {category.description && (
+                  <p className="text-sm text-gray-600">{category.description}</p>
+                )}
+                <span className="text-xs text-gray-500 mt-2">���서: {category.order_num}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* 카테고리 모달 */}
+      {categoryModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">
+              {editCategoryId ? '카테고리 수정' : '새 카테고리 추가'}
+            </h3>
+            <form onSubmit={handleCategorySubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">카테고리명</label>
+                  <input
+                    type="text"
+                    value={categoryFormData.name}
+                    onChange={(e) => setCategoryFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">설명</label>
+                  <textarea
+                    value={categoryFormData.description}
+                    onChange={(e) => setCategoryFormData(prev => ({ ...prev, description: e.target.value }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">정렬 순서</label>
+                  <input
+                    type="number"
+                    value={categoryFormData.order_num}
+                    onChange={(e) => setCategoryFormData(prev => ({ ...prev, order_num: parseInt(e.target.value) || 0 }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryModalOpen(false);
+                    setEditCategoryId(null);
+                    setCategoryFormData({ name: '', description: '', order_num: 0 });
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600"
+                >
+                  {editCategoryId ? '수정' : '추가'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

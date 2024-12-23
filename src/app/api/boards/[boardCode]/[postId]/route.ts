@@ -146,7 +146,7 @@ export async function PUT(
     );
 
     if (!userResult || userResult.length === 0) {
-      return new Response(JSON.stringify({ error: '사용자를 ���을 수 없습니다.' }), {
+      return new Response(JSON.stringify({ error: '사용자를 찾을 수 없습니다.' }), {
         status: 404,
       });
     }
@@ -261,11 +261,28 @@ export async function DELETE(
       );
     }
 
-    // 게시글 삭제
-    await connection.execute(`
-      DELETE FROM posts 
-      WHERE id = ?
-    `, [postId]);
+    // 트랜잭션 시작
+    await connection.beginTransaction();
+
+    try {
+      // 게시글 삭제
+      await connection.execute(`
+        DELETE FROM posts 
+        WHERE id = ?
+      `, [postId]);
+
+      // posts_count 감소
+      await connection.execute(`
+        UPDATE boards 
+        SET posts_count = posts_count - 1 
+        WHERE code = ?
+      `, [boardCode]);
+
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
 
     return NextResponse.json(
       { message: '게시글이 성공적으로 삭제되었습니다.' },

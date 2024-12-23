@@ -68,23 +68,18 @@ export async function GET(
       [boardId, limit, offset]
     );
 
-    // 총 게시글 수 조회 쿼리 추가
-    const [totalResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM posts WHERE board_id = ?',
-      [boardId]
-    );
-
     return NextResponse.json({
       board: {
         id: board.id,
         code: board.code,
         title: board.title,
+        posts_count: board.posts_count,
       },
       posts: posts.map(post => ({
         ...post,
         thumbnail: post.thumbnail || null
       })),
-      total: totalResult[0].total  // 총 게시글 수 추가
+      total: board.posts_count
     });
     
   } catch (error) {
@@ -218,7 +213,7 @@ export async function POST(
     console.log('sequence:', parent_id ? newSequence : 0);
     console.log('depth:', parent_id ? parentDepth + 1 : 0);
 
-    // 게시글 저장
+    // 게시글 ���장
     const [result] = await connection.query(
       `INSERT INTO posts (
         board_id, title, content, thumbnail,
@@ -232,6 +227,12 @@ export async function POST(
         parent_id ? parentDepth + 1 : 0,
         userId, userName
       ]
+    );
+
+    // posts_count 증가
+    await connection.query(
+      'UPDATE boards SET posts_count = posts_count + 1 WHERE id = ?',
+      [boardId]
     );
 
     // 원글인 경우(parent_id가 없는 경우) group_id를 방금 생성된 게시글의 id로 업데이트
@@ -257,7 +258,7 @@ export async function POST(
     });
     
     return NextResponse.json(
-      { error: '게시글 작성에 실패했습니다.' },
+      { error: '게시글 작성에 실패���습니다.' },
       { status: 500 }
     );
   } finally {
