@@ -11,12 +11,32 @@ export default function ProfilePage() {
   const [newName, setNewName] = useState(session?.user?.name || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
     }
   }, [status, router]);
+
+  useEffect(() => {
+    const fetchCreatedAt = async () => {
+      try {
+        const response = await fetch('/api/profile');
+        const data = await response.json();
+        
+        if (response.ok && data.createdAt) {
+          setCreatedAt(data.createdAt);
+        }
+      } catch (error) {
+        console.error('가입일 조회 중 오류 발생:', error);
+      }
+    };
+
+    if (session?.user?.email) {
+      fetchCreatedAt();
+    }
+  }, [session]);
 
   if (status === 'loading') {
     return null;
@@ -125,15 +145,15 @@ export default function ProfilePage() {
         <div>
           <h2 className="text-sm text-gray-500">가입일</h2>
           <p className="mt-1">
-            {session.user?.createdAt ? 
-              new Date(session.user.createdAt).toLocaleDateString('ko-KR', {
+            {createdAt ? 
+              new Date(createdAt).toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
               })
-              : '정보 없음'
+              : '정보를 불러오는 중...'
             }
           </p>
         </div>
