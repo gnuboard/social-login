@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# public 폴더 전체를 무시
+/public/*
+
+# public/icons 폴더는 추적하도록 설정
+!/public/icons/
+
+# misc
+.cursorrulers
