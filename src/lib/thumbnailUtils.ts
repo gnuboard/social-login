@@ -3,14 +3,30 @@ import fs from 'fs';
 import sharp from 'sharp';
 
 export async function extractThumbnailFromContent(content: string): Promise<Buffer | null> {
-  const base64Regex = /<img[^>]*src="(data:image\/[^"]+)"[^>]*>/;
-  const match = content.match(base64Regex);
-  
-  if (match && match[1]) {
-    const base64Data = match[1].replace(/^data:image\/\w+;base64,/, '');
-    return Buffer.from(base64Data, 'base64');
+  console.log('Content type:', typeof content);
+  if (typeof content !== 'string') {
+    console.log('Invalid content type:', content);
+    return null;
   }
-  return null;
+
+  try {
+    const imgRegex = /<img[^>]*src="([^"]+)"[^>]*>/;
+    const match = content.match(imgRegex);
+    
+    if (!match || !match[1]) return null;
+    
+    const src = match[1];
+    
+    if (src.startsWith('data:image')) {
+      const base64Data = src.split(',')[1];
+      return Buffer.from(base64Data, 'base64');
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error in extractThumbnailFromContent:', error);
+    return null;
+  }
 }
 
 export function getThumbnailPath(): { uploadDir: string, yearMonthPath: string } {

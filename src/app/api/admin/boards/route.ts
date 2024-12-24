@@ -40,13 +40,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '인증되지 않은 요청입니다.' }, { status: 401 });
     }
 
-    const { code, title, description, category } = await request.json();
+    const { code, title, description } = await request.json();
     const connection = await pool.getConnection();
     
     try {
       const [result] = await connection.execute(
-        'INSERT INTO boards (code, title, description, category, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
-        [code, title, description, category]
+        'INSERT INTO boards (code, title, description, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
+        [code, title, description]
       );
       
       return NextResponse.json({ message: '게시판이 생성되었습니다.' });
