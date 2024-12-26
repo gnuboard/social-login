@@ -194,16 +194,17 @@ export async function PUT(
     const body = await request.json();
     const thumbnail = await createThumbnail(body.content);
 
-    // 게시글 업데이트 쿼리
-    await connection.execute(`
-      UPDATE posts 
-      SET 
-        title = ?,
-        content = ?,
-        thumbnail = ?,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [body.title, body.content, thumbnail, postId]);
+  // 게시글 업데이트 쿼리
+  await connection.execute(`
+    UPDATE posts 
+    SET 
+      title = ?,
+      content = ?,
+      thumbnail = ?,
+      category_id = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `, [body.title, body.content, thumbnail, body.category_id, postId]);
 
     return new Response(JSON.stringify({ message: '게시글이 성공적으로 수정되었습니다.' }), { 
       status: 200 

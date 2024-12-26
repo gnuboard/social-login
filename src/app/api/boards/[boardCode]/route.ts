@@ -11,6 +11,12 @@ export async function GET(
 ) {
   try {
     const { boardCode } = await params;
+    const { searchParams } = new URL(request.url);
+    
+    // 카테고리 파라미터 디버깅을 위한 로그 추가
+    const category = searchParams.get('category');
+    console.log('카테고리 파라미터 값:', category);
+    
     
     const [boardResult] = await pool.query(
       'SELECT * FROM boards WHERE code = ?',
@@ -29,11 +35,24 @@ export async function GET(
     const board = boardResult[0];
     const boardId = board.id;
     
-    const { searchParams } = new URL(request.url);
     const page = Number(searchParams.get('page')) || 1;
     const limit = Number(searchParams.get('limit')) || 20;
     const offset = (page - 1) * limit;
 
+    let categoryIds: number[] = [];
+    if (category) {
+      // 카테고리 이름으로 ID 조회
+      const [categoryResults] = await pool.query(
+        'SELECT id FROM categories WHERE name = ?',
+        [category]
+      );
+      
+      if (Array.isArray(categoryResults) && categoryResults.length > 0) {
+        categoryIds = categoryResults.map((cat: any) => cat.id);
+      }
+    }
+
+    // 기존 쿼리 수정
     const query = `
       SELECT 
         p.id,
@@ -43,6 +62,7 @@ export async function GET(
         p.view_count,
         p.depth,
         p.thumbnail,
+        c.name as category_name,
         CONCAT(
           ' (',
           p.id,
@@ -58,15 +78,18 @@ export async function GET(
         (SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 0) as dislike_count,
         p.comments_count
       FROM posts p
+      LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.board_id = ?
+      ${categoryIds.length > 0 ? 'AND p.category_id IN (?)' : ''}
       ORDER BY p.group_id DESC, p.sequence ASC
       LIMIT ? OFFSET ?
     `;
 
-    const [posts] = await pool.query<Post[]>(
-      query,
-      [boardId, limit, offset]
-    );
+    const queryParams = categoryIds.length > 0 
+      ? [boardId, categoryIds, limit, offset]
+      : [boardId, limit, offset];
+
+    const [posts] = await pool.query<Post[]>(query, queryParams);
 
     return NextResponse.json({
       board: {
@@ -115,9 +138,9 @@ export async function POST(
   
   try {
     const { boardCode } = await params;
-    const { title, content, parent_id } = await request.json();
+    const { title, content, parent_id, category_id } = await request.json();
 
-    // 컨네일 처리를 함수 호출로 단순화
+    // 컨네�� 처리를 함수 호출로 단순화
     const thumbnail = await createThumbnail(content);
 
     console.log({
@@ -196,7 +219,7 @@ export async function POST(
           newSequence = lastPost[0].sequence + 1;
         }
 
-        // 새 sequence 이상의 값을 가진 글들의 sequence를 1씩 증가
+        // 새 sequence 이상의 값을 진 글들의 sequence를 1씩 증가
         await connection.query(
           `UPDATE posts 
            SET sequence = sequence + 1 
@@ -212,20 +235,21 @@ export async function POST(
     console.log('group_id:', groupId);
     console.log('sequence:', parent_id ? newSequence : 0);
     console.log('depth:', parent_id ? parentDepth + 1 : 0);
+    console.log('category_id:', category_id);
 
-    // 게시글 ���장
+    // 게시글 저장
     const [result] = await connection.query(
       `INSERT INTO posts (
         board_id, title, content, thumbnail,
         group_id, sequence, depth, 
-        user_id, author, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        user_id, author, created_at, category_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)`,
       [
         boardId, title, content, thumbnail,
         groupId, 
         parent_id ? newSequence : 0,
         parent_id ? parentDepth + 1 : 0,
-        userId, userName
+        userId, userName, category_id
       ]
     );
 
@@ -258,7 +282,7 @@ export async function POST(
     });
     
     return NextResponse.json(
-      { error: '게시글 작성에 실패���습니다.' },
+      { error: '게시글 작성에 실패했습니다.' },
       { status: 500 }
     );
   } finally {
@@ -272,7 +296,7 @@ export async function PUT(
 ) {
   try {
     const { boardCode } = params;
-    const { id, title, content } = await request.json();
+    const { id, title, content, category_id } = await request.json();
 
     // 썸네일 처리 추가
     const thumbnail = await createThumbnail(content);
@@ -282,9 +306,10 @@ export async function PUT(
        SET title = ?, 
            content = ?, 
            thumbnail = ?,
+           category_id = ?,
            updated_at = NOW() 
        WHERE id = ?`,
-      [title, content, thumbnail, id]
+      [title, content, thumbnail, category_id, id]
     );
 
     return NextResponse.json({

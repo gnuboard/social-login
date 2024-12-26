@@ -12,6 +12,11 @@ interface Props {
   }>;
 }
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 export default function EditPostPage({ params }: Props) {
   const router = useRouter();
   const { boardCode, postId } = use(params);
@@ -19,28 +24,40 @@ export default function EditPostPage({ params }: Props) {
   
   const [isLoading, setIsLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [initialData, setInitialData] = useState<{ title: string; content: string } | null>(null);
+  const [initialData, setInitialData] = useState<{ 
+    title: string; 
+    content: string;
+    category_id?: string | null;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     if (status === 'loading') return;
     
-    const fetchPost = async () => {
+    const fetchData = async () => {
       try {
         if (status === 'unauthenticated') {
           throw new Error('로그인이 필요합니다.');
         }
 
-        const response = await fetch(`/api/boards/${boardCode}/${postId}`);
-        const post = await response.json();
+        const [postResponse, categoriesResponse] = await Promise.all([
+          fetch(`/api/boards/${boardCode}/${postId}`),
+          fetch(`/api/boards/${boardCode}/categories`)
+        ]);
+
+        const post = await postResponse.json();
+        const categoriesData = await categoriesResponse.json();
         
         if (session?.user?.id !== post.user_id) {
           throw new Error('게시글을 수정할 권한이 없습니다.');
         }
 
+        setCategories(categoriesData);
         setInitialData({
           title: post.title || '',
-          content: post.content || ''
+          content: post.content || '',
+          category_id: post.category_id || null
         });
       } catch (err: any) {
         setError(err.message);
@@ -49,19 +66,31 @@ export default function EditPostPage({ params }: Props) {
       }
     };
 
-    fetchPost();
+    fetchData();
   }, [status, session, boardCode, postId]);
 
-  const handleSubmit = async (formData: { title: string; content: string }) => {
+  const handleSubmit = async (formData: { 
+    title: string; 
+    content: string;
+    category_id?: string | null;
+  }) => {
     setSubmitLoading(true);
     
     try {
+      if (!formData.category_id) {
+        throw new Error('카테고리를 선택해주세요.');
+      }
+
       const response = await fetch(`/api/boards/${boardCode}/${postId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          title: formData.title,
+          content: formData.content,
+          category_id: formData.category_id
+        }),
       });
 
       if (!response.ok) {
@@ -104,6 +133,7 @@ export default function EditPostPage({ params }: Props) {
       postId={postId}
       isSubmitting={submitLoading}
       onSubmit={handleSubmit}
+      categories={categories}
     />
   );
 }

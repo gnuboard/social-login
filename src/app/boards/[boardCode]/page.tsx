@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import Image from 'next/image';
 import ThumbnailImage from '@/components/ThumbnailImage';
+import { useRouter } from 'next/navigation';
 
 interface Props {
   params: Promise<{
@@ -12,13 +13,10 @@ interface Props {
   searchParams: { page?: string }
 }
 
-async function getPosts(boardCode: string, session: any, page: number = 1) {
+async function getPosts(boardCode: string, session: any, page: number = 1, category: string = '') {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   const postsPerPage = Number(process.env.NEXT_PUBLIC_POSTS_PER_PAGE) || 10;
-  const apiUrl = `${baseUrl}/api/boards/${boardCode}?page=${page}&limit=${postsPerPage}`;
-  
-  console.log('Fetching posts for board:', boardCode);
-  console.log('Full Request URL:', apiUrl);
+  const apiUrl = `${baseUrl}/api/boards/${boardCode}?page=${page}&limit=${postsPerPage}&category=${category}`;
   
   const response = await fetch(apiUrl, {
     cache: 'no-store',
@@ -52,17 +50,16 @@ export default async function BoardPage({ params, searchParams }: Props) {
   
   const resolvedSearchParams = await searchParams;
   const currentPage = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
+  const category = resolvedSearchParams.category || '';
 
   try {
     const resolvedParams = await params;
-    const { title, posts, totalPages, currentPage: page, total } = await getPosts(resolvedParams.boardCode, session, currentPage);
-    
-    console.log('페이지네이션 정보:', {
+    const { title, posts, totalPages, currentPage: page, total } = await getPosts(
+      resolvedParams.boardCode, 
+      session, 
       currentPage,
-      totalPages,
-      total,
-      postsLength: posts.length
-    });
+      category
+    );
 
     const pageNumbers: number[] = [];
     const maxPages = 5;
@@ -78,8 +75,6 @@ export default async function BoardPage({ params, searchParams }: Props) {
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(i);
     }
-
-    console.log('페이지 번호 배열:', pageNumbers);
 
     const POSTS_PER_PAGE = Number(process.env.NEXT_PUBLIC_POSTS_PER_PAGE) || 10;
 
@@ -119,21 +114,31 @@ export default async function BoardPage({ params, searchParams }: Props) {
                       {total - ((currentPage - 1) * POSTS_PER_PAGE + index)}
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap">
-                      <Link href={`/boards/${resolvedParams.boardCode}/${post.id}`}>
-                        <div className="flex items-center gap-3">
-                          {post.thumbnail && (
-                            <ThumbnailImage src={post.thumbnail} />
+                      <div className="flex items-center gap-3">
+                        {post.thumbnail && (
+                          <ThumbnailImage src={post.thumbnail} />
+                        )}
+                        <div>
+                          {post.category_name && (
+                            <Link
+                              href={`/boards/${resolvedParams.boardCode}?category=${encodeURIComponent(post.category_name)}`}
+                              className="inline-block bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded mr-2 transition-colors"
+                            >
+                              {post.category_name}
+                            </Link>
                           )}
-                          <span className="text-sm font-normal text-gray-900 hover:text-blue-600">
-                            {post.depth > 0 && (
-                              <span className="inline-block text-gray-400" style={{ marginLeft: `${post.depth * 15}px` }}>
-                                └&nbsp;
-                              </span>
-                            )}
-                            {post.title}
-                          </span>
+                          <Link href={`/boards/${resolvedParams.boardCode}/${post.id}${category ? `?category=${encodeURIComponent(category)}` : ''}`}>
+                            <span className="text-sm font-normal text-gray-900 hover:text-blue-600">
+                              {post.depth > 0 && (
+                                <span className="inline-block text-gray-400" style={{ marginLeft: `${post.depth * 15}px` }}>
+                                  └&nbsp;
+                                </span>
+                              )}
+                              {post.title}
+                            </span>
+                          </Link>
                         </div>
-                      </Link>
+                      </div>
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap text-xs text-gray-500 text-center">{post.author}</td>
                     <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-xs text-gray-500 text-center">{post.view_count || 0}</td>
@@ -154,7 +159,7 @@ export default async function BoardPage({ params, searchParams }: Props) {
           <div className="flex justify-center items-center mt-8 gap-2">
             {currentPage > 1 && (
               <Link
-                href={`/boards/${resolvedParams.boardCode}?page=1`}
+                href={`/boards/${resolvedParams.boardCode}?page=1${category ? `&category=${encodeURIComponent(category)}` : ''}`}
                 className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
               >
                 처음
@@ -163,7 +168,7 @@ export default async function BoardPage({ params, searchParams }: Props) {
             {pageNumbers.map((pageNum) => (
               <Link
                 key={pageNum}
-                href={`/boards/${resolvedParams.boardCode}?page=${pageNum}`}
+                href={`/boards/${resolvedParams.boardCode}?page=${pageNum}${category ? `&category=${encodeURIComponent(category)}` : ''}`}
                 className={`px-3 py-1 rounded ${
                   pageNum === currentPage
                     ? 'bg-blue-500 text-white'
@@ -175,7 +180,7 @@ export default async function BoardPage({ params, searchParams }: Props) {
             ))}
             {currentPage < totalPages && (
               <Link
-                href={`/boards/${resolvedParams.boardCode}?page=${totalPages}`}
+                href={`/boards/${resolvedParams.boardCode}?page=${totalPages}${category ? `&category=${encodeURIComponent(category)}` : ''}`}
                 className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
               >
                 마지막

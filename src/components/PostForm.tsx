@@ -8,11 +8,13 @@ interface PostFormProps {
   initialData?: {
     title: string;
     content: string;
+    category_id?: string;
   };
   boardCode: string;
   postId?: string;
   isSubmitting: boolean;
-  onSubmit: (formData: { title: string; content: string }) => Promise<void>;
+  categories: { id: string; name: string; }[];
+  onSubmit: (formData: { title: string; content: string; category_id: string }) => Promise<void>;
 }
 
 export default function PostForm({
@@ -20,15 +22,21 @@ export default function PostForm({
   boardCode,
   postId,
   isSubmitting,
+  categories = [],
   onSubmit
 }: PostFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState(initialData?.title || '');
   const [content, setContent] = useState(initialData?.content || '');
+  const [category_id, setCategory_id] = useState(initialData?.category_id || '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({ title, content });
+    if (!category_id) {
+      alert('카테고리를 선택해주세요.');
+      return;
+    }
+    await onSubmit({ title, content, category_id });
   };
 
   return (
@@ -39,6 +47,33 @@ export default function PostForm({
         </h1>
         
         <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-gray-600 text-xs font-medium mb-1" htmlFor="category">
+              카테고리
+            </label>
+            <div className="relative">
+              <select
+                id="category"
+                value={category_id}
+                onChange={(e) => setCategory_id(e.target.value)}
+                className="appearance-none shadow-sm border border-gray-200 rounded w-full py-1.5 pl-2.5 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                required
+              >
+                <option value="">카테고리 선택</option>
+                {categories?.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
           <div className="mb-4">
             <label className="block text-gray-600 text-xs font-medium mb-1" htmlFor="title">
               제목
