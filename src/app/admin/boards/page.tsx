@@ -34,6 +34,7 @@ export default function BoardsPage() {
     code: '',
     title: '',
     description: '',
+    category: null,
   });
   const [editBoardId, setEditBoardId] = useState<number | null>(null);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);

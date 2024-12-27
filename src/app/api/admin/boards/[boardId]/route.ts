@@ -5,14 +5,13 @@ import { getServerSession } from 'next-auth';
 // 게시판 수정
 export async function PUT(
   request: Request,
-  context: { params: { boardId: string } }
+  {params}: {params: Promise<{boardId: string}>}
 ) {
   const connection = await pool.getConnection();
   
   try {
-    const { code, title, category } = await request.json();
-    const params = await context.params;
-    const boardId = params.boardId;
+    const { code, title, description, category } = await request.json();
+    const {boardId} = await params;
     const boardIdNum = parseInt(boardId);
 
     // 카테고리 정보 조회 (category가 있을 때만)
@@ -29,12 +28,12 @@ export async function PUT(
 
     // SQL 쿼리와 파라미터 개수 일치시킴
     const updateQuery = category 
-      ? 'UPDATE boards SET code = ?, title = ?, category = ? WHERE id = ?'
-      : 'UPDATE boards SET code = ?, title = ? WHERE id = ?';
+      ? 'UPDATE boards SET code = ?, title = ?, description = ?, category = ? WHERE id = ?'
+      : 'UPDATE boards SET code = ?, title = ?, description = ? WHERE id = ?';
     
     const updateParams = category 
-      ? [code, title, categoryName, boardIdNum]
-      : [code, title, boardIdNum];
+      ? [code, title, description, categoryName, boardIdNum]
+      : [code, title, description, boardIdNum];
 
     // 게시판 정보 업데이트
     await connection.execute(updateQuery, updateParams);
