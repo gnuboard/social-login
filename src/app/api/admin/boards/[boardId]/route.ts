@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { getServerSession } from 'next-auth';
 
 // 게시판 수정
-export async function PUT(
-  request: Request,
-  {params}: {params: Promise<{boardId: string}>}
-) {
+export async function PUT( 
+  request: Request, 
+  { params }: { params: { boardId: string } }) 
+{
   const connection = await pool.getConnection();
   
   try {
     const { code, title, description, category } = await request.json();
-    const {boardId} = await params;
+    const { boardId } = await params;
     const boardIdNum = parseInt(boardId);
 
     // 카테고리 정보 조회 (category가 있을 때만)

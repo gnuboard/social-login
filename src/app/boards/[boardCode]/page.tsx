@@ -45,6 +45,31 @@ async function getPosts(boardCode: string, session: any, page: number = 1, categ
   };
 }
 
+async function getCategories(boardCode: string, session: any) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const apiUrl = `${baseUrl}/api/boards/${boardCode}/categories`;
+  
+  try {
+    const response = await fetch(apiUrl, {
+      cache: 'no-store',
+      headers: {
+        'Authorization': session ? `Bearer ${session.user.accessToken}` : ''
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('카테고리 조회 실패:', response.statusText);
+      return [];  // 에러 발생시 빈 배열 반환
+    }
+    
+    const data = await response.json();
+    return data || [];  // categories 속성 없이 직접 배열 반환
+  } catch (error) {
+    console.error('카테고리 조회 중 에러 발생:', error);
+    return [];
+  }
+}
+
 export default async function BoardPage({ params, searchParams }: Props) {
   const session = await getServerSession(authOptions);
   
@@ -54,12 +79,12 @@ export default async function BoardPage({ params, searchParams }: Props) {
 
   try {
     const resolvedParams = await params;
-    const { title, posts, totalPages, currentPage: page, total } = await getPosts(
-      resolvedParams.boardCode, 
-      session, 
-      currentPage,
-      category
-    );
+    const [postsData, categories] = await Promise.all([
+      getPosts(resolvedParams.boardCode, session, currentPage, category),
+      getCategories(resolvedParams.boardCode, session)
+    ]);
+    
+    const { title, posts, totalPages, currentPage: page, total } = postsData;
 
     const pageNumbers: number[] = [];
     const maxPages = 5;
@@ -80,10 +105,39 @@ export default async function BoardPage({ params, searchParams }: Props) {
 
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">
-            {title} <span className="text-base font-normal text-gray-500 ml-2">({total})</span>
-          </h1>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">
+              {title} <span className="text-base font-normal text-gray-500 ml-2">({total})</span>
+            </h1>
+            {categories.length > 0 && (
+              <div className="mt-4 flex gap-2 flex-wrap">
+                <Link
+                  href={`/boards/${resolvedParams.boardCode}`}
+                  className={`text-sm px-3 py-1 rounded-full ${
+                    !category 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  전체
+                </Link>
+                {categories.map((cat: { id: number, name: string }) => (
+                  <Link
+                    key={cat.id}
+                    href={`/boards/${resolvedParams.boardCode}?category=${encodeURIComponent(cat.name)}`}
+                    className={`text-sm px-3 py-1 rounded-full ${
+                      category === cat.name 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
           {session && (
             <Link 
               href={`/boards/${resolvedParams.boardCode}/new`}
